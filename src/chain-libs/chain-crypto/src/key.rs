@@ -1,5 +1,8 @@
 use crate::bech32::{self, Bech32};
+use crate::Ed25519;
 use hex::FromHexError;
+use proptest::arbitrary::{Arbitrary, StrategyFor};
+use proptest::strategy::Map;
 #[cfg(any(test, feature = "property-test-api"))]
 use proptest::strategy::{BoxedStrategy, Strategy};
 use rand_core::{CryptoRng, RngCore};
@@ -52,20 +55,20 @@ pub trait SecretKeySizeStatic: AsymmetricKey {
     const SECRET_KEY_SIZE: usize;
 }
 
+#[derive(test_strategy::Arbitrary)]
 pub struct SecretKey<A: AsymmetricKey>(pub(crate) A::Secret);
 
-#[cfg(any(test, feature = "property-test-api"))]
-impl<A: AsymmetricPublicKey + 'static> proptest::arbitrary::Arbitrary for PublicKey<A>
+impl<A: AsymmetricPublicKey + 'static> Arbitrary for PublicKey<A>
 where
-    A::Public: proptest::arbitrary::Arbitrary,
+    A::Public: Arbitrary,
 {
     type Parameters = ();
-    type Strategy = BoxedStrategy<Self>;
+    type Strategy = Map<StrategyFor<A::Public>, fn(A::Public) -> Self>;
     fn arbitrary_with((): ()) -> Self::Strategy {
-        let x = proptest::arbitrary::any::<A::Public>();
-        x.prop_map(|x| Self(x)).boxed()
+        proptest::arbitrary::any::<A::Public>().prop_map(Self)
     }
 }
+
 pub struct PublicKey<A: AsymmetricPublicKey>(pub(crate) A::Public);
 pub struct KeyPair<A: AsymmetricKey>(SecretKey<A>, PublicKey<A::PubAlg>);
 

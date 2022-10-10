@@ -4,7 +4,7 @@ use chain_core::{
     property::{DeserializeFromSlice, ReadError, Serialize, WriteError},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, test_strategy::Arbitrary)]
 pub struct ConfigParams(pub(crate) Vec<ConfigParam>);
 
 impl ConfigParams {

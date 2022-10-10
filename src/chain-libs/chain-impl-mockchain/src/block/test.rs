@@ -18,11 +18,13 @@ use chain_core::{
 #[cfg(test)]
 use quickcheck::TestResult;
 use quickcheck::{Arbitrary, Gen};
+use test_strategy::proptest;
 
-quickcheck! {
-    fn header_serialization_bijection(b: Header) -> TestResult {
-        serialization_bijection(b)
+#[proptest]
+    fn header_serialization_bijection(b: crate::header::Header) {
+        serialization_bijection(b);
     }
+quickcheck! {
 
     fn block_serialization_bijection(b: Block) -> TestResult {
         serialization_bijection(b)

@@ -9,6 +9,9 @@ use cryptoxide::blake2b::Blake2b;
 use cryptoxide::digest::Digest as _;
 use hex::FromHexError;
 
+use proptest::arbitrary::StrategyFor;
+use proptest::prelude::{any, Arbitrary};
+use proptest::strategy::{Map, Strategy};
 use typed_bytes::ByteSlice;
 
 use crate::bech32::{self, Bech32};
@@ -268,13 +271,24 @@ impl<H: DigestAlg> Digest<H> {
 use std::marker::PhantomData;
 
 /// A typed version of Digest
-#[cfg_attr(
-    any(test, feature = "property-test-api"),
-    derive(test_strategy::Arbitrary)
-)]
 pub struct DigestOf<H: DigestAlg, T> {
     inner: Digest<H>,
     marker: PhantomData<T>,
+}
+
+impl<H: DigestAlg, T> Arbitrary for DigestOf<H, T>
+where
+    Digest<H>: Arbitrary,
+{
+    type Parameters = ();
+    type Strategy = Map<StrategyFor<Digest<H>>, fn(Digest<H>) -> Self>;
+
+    fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+        any::<Digest<H>>().prop_map(|inner| DigestOf {
+            inner,
+            marker: PhantomData,
+        })
+    }
 }
 
 unsafe impl<H: DigestAlg, T> Send for DigestOf<H, T> {}

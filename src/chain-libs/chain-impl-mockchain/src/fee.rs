@@ -2,15 +2,18 @@ use crate::certificate::CertificateSlice;
 use crate::transaction as tx;
 use crate::value::Value;
 use std::num::NonZeroU64;
+use proptest::prelude::*;
 
 /// Linear fee using the basic affine formula
 /// `COEFFICIENT * bytes(COUNT(tx.inputs) + COUNT(tx.outputs)) + CONSTANT + CERTIFICATE*COUNT(certificates)`.
-#[derive(PartialEq, Eq, PartialOrd, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Debug, Clone, test_strategy::Arbitrary)]
 pub struct LinearFee {
     pub constant: u64,
     pub coefficient: u64,
     pub certificate: u64,
+    #[strategy(Just(PerCertificateFee::new(None, None, None)))]
     pub per_certificate_fees: PerCertificateFee,
+    #[strategy(Just(PerVoteCertificateFee::new(None, None)))]
     pub per_vote_certificate_fees: PerVoteCertificateFee,
 }
 
@@ -21,7 +24,7 @@ pub struct PerCertificateFee {
     pub certificate_owner_stake_delegation: Option<NonZeroU64>,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Debug, Clone, Copy, Default)]
+#[derive(PartialEq, Eq, PartialOrd, Debug, Clone, Copy, Default, test_strategy::Arbitrary)]
 pub struct PerVoteCertificateFee {
     pub certificate_vote_plan: Option<NonZeroU64>,
     pub certificate_vote_cast: Option<NonZeroU64>,

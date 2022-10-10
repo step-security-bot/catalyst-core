@@ -3,7 +3,7 @@ use std::{fmt, iter};
 
 const MILLI_MULTIPLIER: u64 = 1000;
 
-#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd, test_strategy::Arbitrary)]
 pub struct Milli(u64);
 
 impl Milli {
@@ -59,12 +59,11 @@ impl fmt::Display for Milli {
     }
 }
 
-#[cfg(any(test, feature = "property-test-api"))]
+#[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(test)]
-    use quickcheck::TestResult;
     use quickcheck::{Arbitrary, Gen};
+    use test_strategy::proptest;
 
     #[cfg(test)]
     fn assert_from_str(input: &str, expected_milli: u64) {
@@ -121,18 +120,10 @@ mod tests {
         assert_display(1001, "1.001");
     }
 
-    quickcheck! {
-        fn milli_print_parse_cycle(milli: Milli) -> TestResult {
-            let result = milli.to_string().parse();
+    #[proptest]
+    fn milli_print_parse_cycle(milli: Milli) {
+        let result = milli.to_string().parse();
 
-            assert_eq!(result, Ok(milli));
-            TestResult::passed()
-        }
-    }
-
-    impl Arbitrary for Milli {
-        fn arbitrary<G: Gen>(g: &mut G) -> Self {
-            Milli::from_millis(u64::arbitrary(g))
-        }
+        assert_eq!(result, Ok(milli));
     }
 }

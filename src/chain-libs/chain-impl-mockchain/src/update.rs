@@ -234,7 +234,6 @@ mod tests {
     use crate::certificate::UpdateProposal;
     #[cfg(test)]
     use crate::milli::Milli;
-    #[cfg(test)]
     use crate::testing::serialization::serialization_bijection;
     #[cfg(test)]
     use crate::{
@@ -248,6 +247,7 @@ mod tests {
     use quickcheck::TestResult;
     use quickcheck::{Arbitrary, Gen};
     use quickcheck_macros::quickcheck;
+    use test_strategy::proptest;
     use std::iter;
 
     impl Arbitrary for UpdateProposalState {
@@ -287,10 +287,9 @@ mod tests {
         update_state.apply_vote(&signed_update_vote, settings)
     }
 
-    quickcheck! {
-        fn update_proposal_serialize_deserialize_bijection(update_proposal: UpdateProposal) -> TestResult {
-            serialization_bijection(update_proposal)
-        }
+    #[proptest]
+    fn update_proposal_serialize_deserialize_bijection(update_proposal: UpdateProposal) {
+        serialization_bijection(update_proposal);
     }
 
     #[test]

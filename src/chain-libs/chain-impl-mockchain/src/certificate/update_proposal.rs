@@ -15,7 +15,7 @@ use typed_bytes::{ByteArray, ByteBuilder};
 
 pub type UpdateProposerId = BftLeaderId;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, test_strategy::Arbitrary)]
 pub struct UpdateProposal {
     changes: ConfigParams,
     proposer_id: UpdateProposerId,

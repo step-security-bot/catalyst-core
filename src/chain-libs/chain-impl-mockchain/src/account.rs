@@ -16,10 +16,6 @@ pub type Witness = Signature<WitnessAccountData, AccountAlg>;
 
 /// Account Identifier (also used as Public Key)
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(
-    any(test, feature = "property-test-api"),
-    derive(test_strategy::Arbitrary)
-)]
 pub struct Identifier(PublicKey<AccountAlg>);
 
 impl From<PublicKey<AccountAlg>> for Identifier {
@@ -65,15 +61,13 @@ impl std::fmt::Display for Identifier {
     }
 }
 
-#[cfg(any(test, feature = "property-test-api"))]
+#[cfg(test)]
 mod test {
     use super::*;
-    #[cfg(test)]
     use crate::testing::serialization::serialization_bijection;
     use chain_crypto::{Ed25519, KeyPair};
-    #[cfg(test)]
-    use quickcheck::TestResult;
     use quickcheck::{Arbitrary, Gen};
+    use test_strategy::proptest;
 
     impl Arbitrary for Identifier {
         fn arbitrary<G: Gen>(g: &mut G) -> Self {
@@ -82,9 +76,24 @@ mod test {
         }
     }
 
-    quickcheck! {
-        fn identifier_serialization_bijection(id: Identifier) -> TestResult {
-            serialization_bijection(id)
+    #[proptest]
+    fn identifier_serialization_bijection(id: Identifier) {
+        serialization_bijection(id);
+    }
+}
+
+mod proptest_impl {
+    use chain_crypto::{Ed25519, KeyPair};
+    use proptest::{arbitrary::StrategyFor, prelude::*, strategy::Map};
+
+    use super::Identifier;
+
+    impl Arbitrary for Identifier {
+        type Parameters = ();
+        type Strategy = Map<StrategyFor<KeyPair<Ed25519>>, fn(KeyPair<Ed25519>) -> Self>;
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            any::<KeyPair<Ed25519>>().prop_map(|kp| Identifier::from(kp.into_keys().1))
         }
     }
 }

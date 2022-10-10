@@ -8,7 +8,7 @@ use strum_macros::{Display, EnumString, IntoStaticStr};
 
 pub type HeaderId = Hash; // TODO: change to DigestOf<Blake2b256, Header>
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, test_strategy::Arbitrary)]
 pub struct ChainLength(pub(crate) u32);
 
 impl From<u32> for ChainLength {

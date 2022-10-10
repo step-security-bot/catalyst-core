@@ -6,7 +6,7 @@ use crate::date::BlockDate;
 use crate::fragment::{BlockContentHash, BlockContentSize};
 use crate::key::BftLeaderId;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, test_strategy::Arbitrary)]
 pub struct Common {
     pub block_version: BlockVersion,
     pub block_date: BlockDate,

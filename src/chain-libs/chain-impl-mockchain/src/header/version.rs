@@ -50,7 +50,7 @@ impl From<BlockVersion> for AnyBlockVersion {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, test_strategy::Arbitrary)]
 pub enum BlockVersion {
     Genesis,
     Ed25519Signed,

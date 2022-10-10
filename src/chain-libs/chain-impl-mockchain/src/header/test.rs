@@ -9,14 +9,12 @@ use chain_crypto::{
     VerifiableRandomFunction,
 };
 use lazy_static::lazy_static;
-#[cfg(test)]
-use quickcheck::TestResult;
 use quickcheck::{Arbitrary, Gen};
+use test_strategy::proptest;
 
-quickcheck! {
-    fn header_serialization_bijection(b: Header) -> TestResult {
-        serialization_bijection(b)
-    }
+#[proptest]
+fn header_serialization_bijection(b: Header) {
+    serialization_bijection(b);
 }
 
 impl Arbitrary for BlockVersion {
@@ -113,6 +111,78 @@ impl Arbitrary for Header {
                     .set_signature(gp_proof.kes_proof)
                     .generalize()
             }
+        }
+    }
+}
+
+mod proptest_impls {
+    use chain_crypto::{Ed25519, SecretKey, testing::TestCryptoGen, digest::DigestOf, Blake2b256};
+    use proptest::{arbitrary::StrategyFor, prelude::*, strategy::Map};
+
+    use crate::{
+        block::{BftProof, BftSignature, BlockVersion, Common, GenesisPraosProof},
+        header::{Header, HeaderBuilderNew},
+        key::BftLeaderId, certificate::PoolRegistration,
+    };
+
+    impl Arbitrary for Header {
+        type Parameters = ();
+        type Strategy = Map<
+            StrategyFor<(Common, BftProof, GenesisPraosProof)>,
+            fn((Common, BftProof, GenesisPraosProof)) -> Self,
+        >;
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            any::<(Common, BftProof, GenesisPraosProof)>().prop_map(
+                |(common, bft_proof, gp_proof)| {
+                    let builder = HeaderBuilderNew::new_raw(
+                        common.block_version,
+                        &common.block_content_hash,
+                        common.block_content_size,
+                    )
+                    .set_parent(&common.block_parent_hash, common.chain_length)
+                    .set_date(common.block_date);
+
+                    match common.block_version {
+                        BlockVersion::Genesis => {
+                            builder.into_unsigned_header().unwrap().generalize()
+                        }
+                        BlockVersion::Ed25519Signed => builder
+                            .into_bft_builder()
+                            .unwrap()
+                            .set_consensus_data(&bft_proof.leader_id)
+                            .set_signature(bft_proof.signature)
+                            .generalize(),
+                        BlockVersion::KesVrfproof => builder
+                            .into_genesis_praos_builder()
+                            .unwrap()
+                            .set_consensus_data(&gp_proof.node_id, &gp_proof.vrf_proof)
+                            .set_signature(gp_proof.kes_proof)
+                            .generalize(),
+                    }
+                },
+            )
+        }
+    }
+
+    impl Arbitrary for BftProof {
+        type Parameters = ();
+        type Strategy = Map<StrategyFor<SecretKey<Ed25519>>, fn(SecretKey<Ed25519>) -> Self>;
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            any::<SecretKey<Ed25519>>().prop_map(|sk| {
+                let pk = sk.to_public();
+                let signature = sk.sign(&[0u8, 1, 2, 3]);
+                BftProof {
+                    leader_id: BftLeaderId(pk),
+                    signature: BftSignature(signature.coerce()),
+                }
+            })
+        }
+    }
+
+    impl Arbitrary for GenesisPraosProof {
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+           any::<(TestCryptoGen, DigestOf<Blake2b256, PoolRegistration>)>() 
         }
     }
 }

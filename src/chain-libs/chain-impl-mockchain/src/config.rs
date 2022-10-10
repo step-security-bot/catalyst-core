@@ -61,13 +61,13 @@ impl From<Error> for ReadError {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, test_strategy::Arbitrary)]
 pub enum ConfigParam {
     Block0Date(Block0Date),
     Discrimination(Discrimination),
     ConsensusVersion(ConsensusType),
     SlotsPerEpoch(u32),
-    SlotDuration(u8),
+    SlotDuration(#[strategy(1..)] u8),
     EpochStabilityDepth(u32),
     ConsensusGenesisPraosActiveSlotsCoeff(Milli),
     BlockContentMaxSize(u32),
@@ -112,7 +112,7 @@ pub enum RewardParams {
 }
 
 #[cfg(feature = "evm")]
-#[derive(Copy, Clone, Default, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Default, Debug, PartialEq, Eq, test_strategy::Arbitrary)]
 /// Settings for EVM Environment
 pub struct EvmEnvSettings {
     pub gas_price: u64,
@@ -959,6 +959,12 @@ mod test {
                 gas_price: Arbitrary::arbitrary(g),
                 block_gas_limit: Arbitrary::arbitrary(g),
             }
+        }
+    }
+
+    impl Arbitrary for Milli {
+        fn arbitrary<G: Gen>(g: &mut G) -> Self {
+            Milli::from_millis(Arbitrary::arbitrary(g))
         }
     }
 

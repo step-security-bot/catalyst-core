@@ -19,7 +19,7 @@ use chain_evm::{
 };
 
 /// Variants of supported EVM action types
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, test_strategy::Arbitrary)]
 pub enum EvmActionType {
     #[cfg(feature = "evm")]
     Create { init_code: ByteCode },
@@ -40,7 +40,7 @@ impl EvmActionType {
 }
 
 /// Variants of supported EVM transactions
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, test_strategy::Arbitrary)]
 pub struct EvmTransaction {
     #[cfg(feature = "evm")]
     pub caller: Address,
@@ -51,6 +51,7 @@ pub struct EvmTransaction {
     #[cfg(feature = "evm")]
     pub gas_limit: u64,
     #[cfg(feature = "evm")]
+    #[strategy(proptest_impl::access_list_strategy())]
     pub access_list: AccessList,
     #[cfg(feature = "evm")]
     pub action_type: EvmActionType,
@@ -229,6 +230,7 @@ mod test {
         machine::AccessListItem,
     };
     use quickcheck::Arbitrary;
+    use test_strategy::proptest;
 
     impl Arbitrary for EvmActionType {
         fn arbitrary<G: quickcheck::Gen>(g: &mut G) -> Self {
@@ -292,13 +294,50 @@ mod test {
         }
     }
 
-    quickcheck! {
-        // this tests encoding/decoding using the Serialize/Deserialize traits
-        // with RLP encoding under the hood
-        fn evm_transaction_serialization_bijection(b: EvmTransaction) -> bool {
-            let encoded = b.serialize_as_vec().unwrap();
-            let decoded = EvmTransaction::deserialize(&mut Codec::new(encoded.as_slice())).unwrap();
-            decoded == b
-        }
+    // this tests encoding/decoding using the Serialize/Deserialize traits
+    // with RLP encoding under the hood
+    #[proptest]
+    fn evm_transaction_serialization_bijection(b: EvmTransaction) {
+        let encoded = b.serialize_as_vec().unwrap();
+        let decoded = EvmTransaction::deserialize(&mut Codec::new(encoded.as_slice())).unwrap();
+        assert!(decoded == b);
+    }
+}
+
+mod proptest_impl {
+    use chain_evm::{
+        ethereum_types::{H160, H256},
+        machine::AccessListItem,
+        AccessList,
+    };
+    use proptest::prelude::*;
+
+    use super::EvmActionType;
+
+    pub fn access_list_strategy() -> impl Strategy<Value = AccessList> {
+        type H160Bytes = [u8; H160::len_bytes()];
+        type H256Bytes = [u8; H256::len_bytes()];
+
+        // use arrays for shorter syntax
+        let populated = any::<([H160Bytes; 3], [H256Bytes; 6])>().prop_map(
+            |([addr_1, addr_2, addr_3], [key_1, key_2, key_3, key_4, key_5, key_6])| {
+                vec![
+                    AccessListItem {
+                        address: H160(addr_1),
+                        storage_keys: vec![H256(key_1), H256(key_2)],
+                    },
+                    AccessListItem {
+                        address: H160(addr_2),
+                        storage_keys: vec![H256(key_3), H256(key_4)],
+                    },
+                    AccessListItem {
+                        address: H160(addr_3),
+                        storage_keys: vec![H256(key_5), H256(key_6)],
+                    },
+                ]
+            },
+        );
+
+        prop_oneof![Just(vec![]), populated,]
     }
 }

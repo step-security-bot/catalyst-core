@@ -67,7 +67,7 @@ pub type GasPrice = U256;
 /// Gas limit for EVM operations.
 pub type GasLimit = U256;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, test_strategy::Arbitrary)]
 /// EVM Configuration parameters needed for execution.
 pub enum Config {
     /// Configuration for the `Frontier` fork.
