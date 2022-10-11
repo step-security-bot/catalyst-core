@@ -78,9 +78,8 @@ mod tests {
     use super::*;
     #[cfg(test)]
     use crate::testing::serialization::serialization_bijection;
-    #[cfg(test)]
-    use quickcheck::TestResult;
     use quickcheck::{Arbitrary, Gen};
+    use test_strategy::proptest;
 
     impl Arbitrary for TokenName {
         fn arbitrary<G: Gen>(g: &mut G) -> Self {
@@ -93,8 +92,8 @@ mod tests {
         }
     }
 
-    #[quickcheck_macros::quickcheck]
-    fn token_name_serialization_bijection(token_name: TokenName) -> TestResult {
-        serialization_bijection(token_name)
+    #[proptest]
+    fn token_name_serialization_bijection(token_name: TokenName)  {
+        serialization_bijection(token_name);
     }
 }

@@ -6,6 +6,7 @@ use crate::testing::serialization::serialization_bijection;
 use quickcheck::TestResult;
 use quickcheck::{Arbitrary, Gen};
 use quickcheck_macros::quickcheck;
+use test_strategy::proptest;
 
 impl Arbitrary for Fragment {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
@@ -48,12 +49,12 @@ impl Arbitrary for ConfigParams {
     }
 }
 
-quickcheck! {
-    fn fragment_serialization_bijection(b: Fragment) -> TestResult {
-        serialization_bijection(b)
-    }
+#[proptest]
+fn fragment_serialization_bijection(b: Fragment) {
+    serialization_bijection(b);
+}
 
-    fn initial_ents_serialization_bijection(config_params: ConfigParams) -> TestResult {
-        serialization_bijection(config_params)
-    }
+#[proptest]
+fn initial_ents_serialization_bijection(config_params: ConfigParams) {
+    serialization_bijection(config_params);
 }

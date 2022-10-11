@@ -4,10 +4,11 @@ use chain_core::{
     packer::Codec,
     property::{Deserialize, ReadError},
 };
+use test_strategy::Arbitrary;
 
 /// Information how tokens are spent.
 /// A value of tokens is sent to the address.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Arbitrary)]
 pub struct Output<Address> {
     pub address: Address,
     pub value: Value,

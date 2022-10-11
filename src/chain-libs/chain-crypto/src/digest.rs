@@ -283,7 +283,7 @@ where
     type Parameters = ();
     type Strategy = Map<StrategyFor<Digest<H>>, fn(Digest<H>) -> Self>;
 
-    fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+    fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
         any::<Digest<H>>().prop_map(|inner| DigestOf {
             inner,
             marker: PhantomData,

@@ -240,41 +240,49 @@ mod tests {
 
 mod proptest_impls {
     use chain_vote::{Crs, ElectionPublicKey, MemberCommunicationKey, MemberState, Vote};
-    use proptest::{prelude::*, arbitrary::StrategyFor, strategy::Map};
+    use proptest::{arbitrary::StrategyFor, prelude::*, strategy::Map};
+    use rand::SeedableRng;
 
     use crate::vote::Choice;
 
-    use super::{Payload, PayloadType, EncryptedVote, ProofOfCorrectVote};
+    use super::{EncryptedVote, Payload, PayloadType, ProofOfCorrectVote};
 
     type PayloadInputs = (PayloadType, Choice, [u8; 32]);
 
     impl Arbitrary for Payload {
         type Parameters = ();
-        type Strategy = Map<StrategyFor<PayloadInputs>, fn(PayloadInputs) -> Self>;
+        type Strategy = BoxedStrategy<Self>; // TODO: remove box when TAIT stablilized
+                                             //
         fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
-            any::<PayloadInputs>().prop_map(|(ty, choice, seed)| match ty {
-                PayloadType::Public => Payload::Public { choice },
-                PayloadType::Private => {
-                    let mut gen = rand_chacha::ChaCha20Rng::from_seed(seed);
-                    let mc = MemberCommunicationKey::new(&mut gen);
-                    let threshold = 1;
-                    let h = Crs::from_hash(&seed);
-                    let m = MemberState::new(&mut gen, threshold, &h, &[mc.to_public()], 0);
-                    let participants = vec![m.public_key()];
-                    let ek = ElectionPublicKey::from_participants(&participants);
-                    let vote_options = 3;
-                    let choice = g.next_u32() % vote_options;
-                    let (vote, proof) = ek.encrypt_and_prove_vote(
-                        &mut gen,
-                        &h,
-                        Vote::new(vote_options as usize, choice as usize),
-                    );
-                    Payload::private(
-                        EncryptedVote::from_inner(vote),
-                        ProofOfCorrectVote::from_inner(proof),
-                    )
-                }
-            })
+            any::<PayloadInputs>()
+                .prop_flat_map(|(ty, choice, seed)| match ty {
+                    PayloadType::Public => Just(Payload::Public { choice }).boxed(),
+                    PayloadType::Private => {
+                        let mut gen = rand_chacha::ChaCha20Rng::from_seed(seed);
+                        let mc = MemberCommunicationKey::new(&mut gen);
+                        let threshold = 1;
+                        let h = Crs::from_hash(&seed);
+                        let m = MemberState::new(&mut gen, threshold, &h, &[mc.to_public()], 0);
+                        let participants = vec![m.public_key()];
+                        let ek = ElectionPublicKey::from_participants(&participants);
+                        let vote_options = 3;
+                        (0..vote_options)
+                            .prop_map(move |choice| {
+                                let mut gen = gen.clone();
+                                let (vote, proof) = ek.encrypt_and_prove_vote(
+                                    &mut gen,
+                                    &h,
+                                    Vote::new(vote_options as usize, choice as usize),
+                                );
+                                Payload::private(
+                                    EncryptedVote::from_inner(vote),
+                                    ProofOfCorrectVote::from_inner(proof),
+                                )
+                            })
+                            .boxed()
+                    }
+                })
+                .boxed()
         }
     }
 }

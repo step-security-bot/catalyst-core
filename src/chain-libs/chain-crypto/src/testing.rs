@@ -163,3 +163,27 @@ pub fn public_key_strategy<A: AsymmetricKey>() -> impl Strategy<Value = PublicKe
     any::<(TestCryptoGen, u32)>()
         .prop_map(|(gen, idx)| SecretKey::<A>::generate(gen.get_rng(idx)).to_public())
 }
+
+mod proptest_impls {
+    use proptest::{
+        arbitrary::StrategyFor,
+        collection::{vec, VecStrategy},
+        prelude::*,
+        strategy::Map,
+    };
+
+    use crate::{Signature, VerificationAlgorithm};
+
+    impl<T, A> Arbitrary for Signature<T, A>
+    where
+        A: VerificationAlgorithm,
+    {
+        type Parameters = ();
+        type Strategy = Map<VecStrategy<StrategyFor<u8>>, fn(Vec<u8>) -> Self>;
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            vec(any::<u8>(), A::SIGNATURE_SIZE)
+                .prop_map(|bytes| Signature::from_binary(&bytes).unwrap())
+        }
+    }
+}

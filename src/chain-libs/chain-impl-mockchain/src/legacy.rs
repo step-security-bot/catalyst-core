@@ -109,26 +109,18 @@ mod tests {
 mod proptest_impls {
     use cardano_legacy_address::{Addr, ExtendedAddr};
     use ed25519_bip32::{XPub, XPUB_SIZE};
-    use proptest::{
-        arbitrary::StrategyFor,
-        collection::{vec, VecStrategy},
-        prelude::*,
-        strategy::Map,
-    };
+    use proptest::{arbitrary::StrategyFor, collection::vec, prelude::*};
 
     use crate::value::Value;
 
     use super::UtxoDeclaration;
 
-    type Pair = (Value, [u8; XPUB_SIZE]);
-    type VecStrat = VecStrategy<Map<StrategyFor<Pair>, fn(Pair) -> (Addr, Value)>>;
-
     impl Arbitrary for UtxoDeclaration {
         type Parameters = ();
-        type Strategy = Map<VecStrat, fn(Vec<(Addr, Value)>) -> Self>;
+        type Strategy = BoxedStrategy<Self>; // TODO: remove box when TAIT stabilized
 
         fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
-            let pair_strategy = any::<Pair>().prop_map(|(value, bytes)| {
+            let pair_strategy = any::<(Value, [u8; XPUB_SIZE])>().prop_map(|(value, bytes)| {
                 let xpub = XPub::from_bytes(bytes);
                 let ea = ExtendedAddr::new_simple(&xpub, None);
                 let addr = ea.to_address();
@@ -136,7 +128,9 @@ mod proptest_impls {
                 (addr, value)
             });
 
-            vec(pair_strategy, 0..255).prop_map(|addrs| Self { addrs })
+            vec(pair_strategy, 0..255)
+                .prop_map(|addrs| Self { addrs })
+                .boxed()
         }
     }
 }

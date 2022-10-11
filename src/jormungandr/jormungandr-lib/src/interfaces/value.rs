@@ -18,7 +18,7 @@ use value::ValueError;
 /// # assert_eq!(value.to_string(), "64");
 /// ```
 ///
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, test_strategy::Arbitrary)]
 pub struct Value(value::Value);
 
 impl Value {

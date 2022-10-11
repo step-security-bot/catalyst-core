@@ -3,7 +3,6 @@ use super::{
     NoExtra, Payload, Transaction, TxBuilder, UnspecifiedAccountIdentifier, UtxoPointer, Witness,
 };
 use crate::account::SpendingCounter;
-#[cfg(test)]
 use crate::certificate::OwnerStakeDelegation;
 use crate::date::BlockDate;
 use crate::key::{EitherEd25519SecretKey, SpendingSignature};
@@ -14,24 +13,25 @@ use chain_crypto::{testing::arbitrary_secret_key, Ed25519, SecretKey, Signature}
 use quickcheck::TestResult;
 use quickcheck::{Arbitrary, Gen};
 use quickcheck_macros::quickcheck;
+use test_strategy::proptest;
 
-quickcheck! {
-    fn transaction_encode_decode(transaction: Transaction<NoExtra>) -> TestResult {
-        serialization_bijection(transaction)
-    }
-    fn stake_owner_delegation_tx_encode_decode(transaction: Transaction<OwnerStakeDelegation>) -> TestResult {
-        serialization_bijection(transaction)
-    }
-    /*
-    fn certificate_tx_encode_decode(transaction: Transaction<Address, Certificate>) -> TestResult {
-        chain_core::property::testing::serialization_bijection(transaction)
-    }
-    */
-    fn signed_transaction_encode_decode(transaction: Transaction<NoExtra>) -> TestResult {
-        serialization_bijection(transaction)
-    }
+#[proptest]
+fn transaction_encode_decode(transaction: Transaction<NoExtra>) {
+    serialization_bijection(transaction);
 }
-
+#[proptest]
+fn stake_owner_delegation_tx_encode_decode(transaction: Transaction<OwnerStakeDelegation>) {
+    serialization_bijection(transaction);
+}
+/*
+fn certificate_tx_encode_decode(transaction: Transaction<Address, Certificate>) -> TestResult {
+    chain_core::property::testing::serialization_bijection(transaction)
+}
+*/
+#[proptest]
+fn signed_transaction_encode_decode(transaction: Transaction<NoExtra>) {
+    serialization_bijection(transaction);
+}
 #[cfg(test)]
 fn check_eq<X>(s1: &str, x1: X, s2: &str, x2: X, s: &str) -> Result<(), String>
 where
@@ -236,28 +236,40 @@ impl Arbitrary for AccountIdentifier {
 
 mod proptest_impls {
     use chain_addr::Address;
-    use proptest::{collection::vec, prelude::*};
+    use proptest::{arbitrary::StrategyFor, collection::vec, prelude::*, strategy::Map};
 
-    use crate::transaction::{Input, Output, Payload, Transaction, UtxoPointer, Witness, TxBuilder};
-
+    use crate::{
+        block::BlockDate,
+        transaction::{Input, Output, Payload, Transaction, TxBuilder, UtxoPointer, Witness},
+    };
 
     impl<T> Arbitrary for Transaction<T>
     where
-        T: Arbitrary + Payload,
-        T::Auth: Arbitrary,
+        T: Arbitrary + Payload + Clone,
+        T::Strategy: 'static,
+        T::Auth: Arbitrary + Clone + 'static,
     {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>; // TODO: remove box when TAIT stabilized
+                                             //
         fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
             any::<(T, T::Auth)>()
-                .prop_flat_map(|(t, auth)| {
-                    (0..16, 0..16)
-                        .prop_map(|(num_inputs, num_outputs)| (t, auth, num_inputs, num_outputs))
+                .prop_flat_map(move |(payload, payload_auth)| {
+                    (0usize..16, 0usize..16).prop_map(move |(num_inputs, num_outputs)| {
+                        (
+                            payload.clone(),
+                            payload_auth.clone(),
+                            num_inputs,
+                            num_outputs,
+                        )
+                    })
                 })
-                .prop_flat_map(|(t, auth, num_inputs, num_outputs)| {
+                .prop_flat_map(|(payload, payload_auth, num_inputs, num_outputs)| {
                     let inputs = vec(any::<Input>(), num_inputs);
                     let outputs = vec(any::<Output<Address>>(), num_outputs);
                     let witnesses = vec(any::<Witness>(), num_inputs);
 
-                    (inputs, outputs, witnesses).prop_map(|(inputs, outputs, witnesses)| {
+                    (inputs, outputs, witnesses).prop_map(move |(inputs, outputs, witnesses)| {
                         TxBuilder::new()
                             .set_payload(&payload)
                             .set_expiry_date(BlockDate::first().next_epoch())
@@ -266,6 +278,16 @@ mod proptest_impls {
                             .set_payload_auth(&payload_auth)
                     })
                 })
+                .boxed()
+        }
+    }
+
+    impl Arbitrary for Input {
+        type Parameters = ();
+        type Strategy = Map<StrategyFor<UtxoPointer>, fn(UtxoPointer) -> Self>;
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            any::<UtxoPointer>().prop_map(Input::from_utxo)
         }
     }
 }

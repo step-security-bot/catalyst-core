@@ -7,6 +7,7 @@ use chain_core::{
     property::{Deserialize, ReadError, Serialize, WriteError},
 };
 use cryptoxide::{blake2b::Blake2b, digest::Digest};
+use test_strategy::Arbitrary;
 use thiserror::Error;
 use typed_bytes::ByteBuilder;
 
@@ -15,18 +16,8 @@ use typed_bytes::ByteBuilder;
 /// cannot be minted during the chain run.
 ///
 /// Minting policies are meant to be ignored in block0 fragments.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    any(test, feature = "property-test-api"),
-    derive(test_strategy::Arbitrary)
-)]
-pub struct MintingPolicy(
-    #[cfg_attr(
-        any(test, feature = "property-test-api"),
-        strategy(Just(vec![]))
-    )]
-    Vec<MintingPolicyEntry>,
-);
+#[derive(Debug, Clone, PartialEq, Eq, Arbitrary)]
+pub struct MintingPolicy(#[strategy(Just(vec![]))] Vec<MintingPolicyEntry>);
 
 /// An entry of a minting policy. Currently there are no entries available.
 /// This is reserved for the future use.
@@ -111,9 +102,8 @@ mod tests {
     use super::*;
     #[cfg(test)]
     use crate::testing::serialization::serialization_bijection;
-    #[cfg(test)]
-    use quickcheck::TestResult;
     use quickcheck::{Arbitrary, Gen};
+    use test_strategy::proptest;
 
     impl Arbitrary for MintingPolicy {
         fn arbitrary<G: Gen>(_g: &mut G) -> Self {
@@ -121,9 +111,8 @@ mod tests {
         }
     }
 
-    quickcheck! {
-        fn minting_policy_serialization_bijection(policy: MintingPolicy) -> TestResult {
-            serialization_bijection(policy)
-        }
+    #[proptest]
+    fn minting_policy_serialization_bijection(policy: MintingPolicy) {
+        serialization_bijection(policy);
     }
 }

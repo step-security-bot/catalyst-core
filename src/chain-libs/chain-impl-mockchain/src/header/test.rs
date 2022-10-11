@@ -116,13 +116,19 @@ impl Arbitrary for Header {
 }
 
 mod proptest_impls {
-    use chain_crypto::{Ed25519, SecretKey, testing::TestCryptoGen, digest::DigestOf, Blake2b256};
+    use chain_crypto::{
+        digest::DigestOf,
+        testing::{static_secret_key, TestCryptoGen},
+        AsymmetricKey, Blake2b256, Ed25519, RistrettoGroup2HashDh, SecretKey, SumEd25519_12,
+        VerifiableRandomFunction,
+    };
     use proptest::{arbitrary::StrategyFor, prelude::*, strategy::Map};
 
     use crate::{
-        block::{BftProof, BftSignature, BlockVersion, Common, GenesisPraosProof},
+        block::{BftProof, BftSignature, BlockVersion, Common, GenesisPraosProof, KesSignature},
+        certificate::PoolRegistration,
         header::{Header, HeaderBuilderNew},
-        key::BftLeaderId, certificate::PoolRegistration,
+        key::BftLeaderId,
     };
 
     impl Arbitrary for Header {
@@ -181,8 +187,36 @@ mod proptest_impls {
     }
 
     impl Arbitrary for GenesisPraosProof {
+        type Parameters = ();
+        type Strategy = Map<
+            StrategyFor<(TestCryptoGen, DigestOf<Blake2b256, PoolRegistration>)>,
+            fn((TestCryptoGen, DigestOf<Blake2b256, PoolRegistration>)) -> Self,
+        >;
+
         fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
-           any::<(TestCryptoGen, DigestOf<Blake2b256, PoolRegistration>)>() 
+            any::<(TestCryptoGen, DigestOf<Blake2b256, PoolRegistration>)>().prop_map(
+                |(tcg, node_id)| {
+                    let vrf_proof = {
+                        let sk = RistrettoGroup2HashDh::generate(&mut tcg.get_rng(0));
+                        RistrettoGroup2HashDh::evaluate_and_prove(
+                            &sk,
+                            &[0, 1, 2, 3],
+                            &mut tcg.get_rng(1),
+                        )
+                    };
+
+                    let kes_proof = {
+                        let sk: SecretKey<SumEd25519_12> = static_secret_key();
+                        let signature = sk.sign(&[0u8, 1, 2, 3]);
+                        KesSignature(signature.coerce())
+                    };
+                    Self {
+                        node_id,
+                        vrf_proof: vrf_proof.into(),
+                        kes_proof,
+                    }
+                },
+            )
         }
     }
 }

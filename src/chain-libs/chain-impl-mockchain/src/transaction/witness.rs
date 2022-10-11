@@ -10,7 +10,11 @@ use chain_core::{
     packer::Codec,
     property::{Deserialize, DeserializeFromSlice, ReadError, Serialize, WriteError},
 };
+use chain_crypto::testing::TestCryptoGen;
 use chain_crypto::{Ed25519, PublicKey, Signature};
+use proptest::prelude::any;
+use proptest::strategy::{Just, Strategy};
+use test_strategy::Arbitrary;
 
 /// Structure that proofs that certain user agrees with
 /// some data. This structure is used to sign `Transaction`
@@ -18,16 +22,21 @@ use chain_crypto::{Ed25519, PublicKey, Signature};
 ///
 /// It's important that witness works with opaque structures
 /// and may not know the contents of the internal transaction.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Arbitrary)]
 pub enum Witness {
     Utxo(SpendingSignature<WitnessUtxoData>),
     Account(account::SpendingCounter, account::Witness),
     OldUtxo(
-        PublicKey<Ed25519>,
-        [u8; 32],
+        #[strategy(public_key_strategy())] PublicKey<Ed25519>,
+        #[strategy(Just([0; 32]))] [u8; 32],
         Signature<WitnessUtxoData, Ed25519>,
     ),
+    #[weight(0)]
     Multisig(account::SpendingCounter, multisig::Witness),
+}
+
+fn public_key_strategy() -> impl Strategy<Value = PublicKey<Ed25519>> {
+    any::<TestCryptoGen>().prop_map(|gen| gen.secret_key::<Ed25519>(0).to_public())
 }
 
 impl PartialEq for Witness {

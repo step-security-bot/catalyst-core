@@ -375,7 +375,7 @@ mod proptest_impls {
                                              //
         fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
             any::<[u8; 32]>()
-                .prop_flat_map(|seed| (1usize..16).prop_map(|n| (seed, n)))
+                .prop_flat_map(|seed| (1usize..16).prop_map(move |n| (seed, n)))
                 .prop_flat_map(|(seed, keys_n)| {
                     let mut keys = Vec::with_capacity(keys_n);
                     let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
@@ -394,7 +394,7 @@ mod proptest_impls {
                     }
 
                     any::<VotePlanInputs>().prop_map(
-                        |(
+                        move |(
                             vote_start,
                             vote_end,
                             committee_end,
@@ -408,7 +408,7 @@ mod proptest_impls {
                                 committee_end,
                                 proposals,
                                 payload_type,
-                                keys,
+                                keys.clone(),
                                 voting_token,
                             )
                         },
