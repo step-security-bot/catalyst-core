@@ -78,7 +78,7 @@ mod test {
     }
 
     #[proptest]
-    fn identifier_serialization_bijection(id: Identifier) {
+    fn identifier_serialization_bijection(#[allow(dead_code)] id: Identifier) {
         serialization_bijection(id);
     }
 }
@@ -93,7 +93,7 @@ mod proptest_impl {
         type Parameters = ();
         type Strategy = Map<StrategyFor<KeyPair<Ed25519>>, fn(KeyPair<Ed25519>) -> Self>;
 
-        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+        fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
             any::<KeyPair<Ed25519>>().prop_map(|kp| Identifier::from(kp.into_keys().1))
         }
     }

@@ -3,15 +3,12 @@ use chain_core::{
     packer::Codec,
     property::{Deserialize, ReadError, Serialize, WriteError},
 };
+use test_strategy::Arbitrary;
 use std::{iter::Sum, ops};
 use thiserror::Error;
 
 /// Unspent transaction value.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
-#[cfg_attr(
-    any(test, feature = "property-test-api"),
-    derive(test_strategy::Arbitrary)
-)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Arbitrary)]
 pub struct Value(pub u64);
 
 const VALUE_SERIALIZED_SIZE: usize = 8;

@@ -1,4 +1,6 @@
 //! Spending strategies
+use test_strategy::Arbitrary;
+
 use super::LedgerError;
 
 /// Simple strategy to spend from multiple increasing counters
@@ -93,11 +95,7 @@ impl Default for SpendingCounterIncreasing {
 ///
 /// Note that the leading LANES_BITS bits are used to codify the
 /// implicit lane.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[cfg_attr(
-    any(test, feature = "property-test-api"),
-    derive(test_strategy::Arbitrary)
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Arbitrary)]
 pub struct SpendingCounter(pub(crate) u32);
 
 impl SpendingCounter {

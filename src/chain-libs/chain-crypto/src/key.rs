@@ -1,5 +1,4 @@
 use crate::bech32::{self, Bech32};
-use crate::Ed25519;
 use hex::FromHexError;
 use proptest::arbitrary::{Arbitrary, StrategyFor};
 use proptest::strategy::Map;

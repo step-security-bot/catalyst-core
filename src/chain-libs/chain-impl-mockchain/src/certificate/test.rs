@@ -336,8 +336,6 @@ fn pool_reg_serialization_bijection(b: PoolRegistration) -> TestResult {
 }
 
 mod proptest_impls {
-    use std::num::NonZeroU8;
-
     use chain_vote::{Crs, EncryptedTally};
     use proptest::{
         arbitrary::StrategyFor,
@@ -373,7 +371,7 @@ mod proptest_impls {
         type Parameters = ();
         type Strategy = BoxedStrategy<Self>; // TODO: remove boxing when TAIT stabilized
                                              //
-        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+        fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
             any::<[u8; 32]>()
                 .prop_flat_map(|seed| (1usize..16).prop_map(move |n| (seed, n)))
                 .prop_flat_map(|(seed, keys_n)| {
@@ -424,7 +422,7 @@ mod proptest_impls {
         type Parameters = ();
         type Strategy = Map<VecStrategy<StrategyFor<Proposal>>, fn(Vec<Proposal>) -> Self>;
 
-        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+        fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
             vec(any::<Proposal>(), 0..Proposals::MAX_LEN).prop_map(|props| {
                 let mut proposals = Proposals::new();
                 for prop in props {
@@ -442,7 +440,7 @@ mod proptest_impls {
             fn(Vec<SingleAccountBindingSignature>) -> Self,
         >;
 
-        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+        fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
             vec(any::<SingleAccountBindingSignature>(), 1..32).prop_map(|vec| {
                 let signatures = vec
                     .into_iter()
@@ -464,7 +462,6 @@ mod proptest_impls {
                 (n, seed, crs_seed, size)
             })
             .prop_flat_map(|(proposals_n, seed, crs_seed, committee_size)| {
-                let crs_seed = crs_seed.clone();
                 let mut rng = ChaChaRng::seed_from_u64(seed);
                 let committee_manager = CommitteeMembersManager::new(
                     &mut rng,
@@ -506,7 +503,7 @@ mod proptest_impls {
         type Parameters = ();
         type Strategy = BoxedStrategy<Self>; // TODO: remove box when TAIT stabilized
 
-        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+        fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
             let public_strategy = any::<VotePlanId>().prop_map(Self::new_public);
             let private_strategy = decrypted_private_tally_strategy();
 

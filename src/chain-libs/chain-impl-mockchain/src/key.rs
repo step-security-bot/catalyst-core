@@ -13,6 +13,7 @@ use chain_crypto::{
     RistrettoGroup2HashDh, SecretKey, SigningAlgorithm, SumEd25519_12, VerificationAlgorithm,
 };
 use rand_core::{CryptoRng, RngCore};
+use test_strategy::Arbitrary;
 use typed_bytes::ByteBuilder;
 
 use std::str::FromStr;
@@ -221,11 +222,7 @@ impl<T: Clone, A: VerificationAlgorithm> Clone for Signed<T, A> {
 }
 
 /// Hash that is used as an address of the various components.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(
-    any(test, feature = "property-test-api"),
-    derive(test_strategy::Arbitrary)
-)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Arbitrary)]
 pub struct Hash(crypto::Blake2b256);
 impl Hash {
     /// All 0 hash used as a special hash

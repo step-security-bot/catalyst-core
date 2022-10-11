@@ -195,7 +195,6 @@ mod test {
     }
 }
 
-#[cfg(any(test, feature = "property-test-api"))]
 mod prop_impl {
     use proptest::prelude::*;
 

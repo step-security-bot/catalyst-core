@@ -38,8 +38,10 @@ pub enum Fragment {
     VotePlan(Transaction<certificate::VotePlan>),
     VoteCast(Transaction<certificate::VoteCast>),
     VoteTally(Transaction<certificate::VoteTally>),
+    #[weight(0)]
     MintToken(Transaction<certificate::MintToken>),
     Evm(EvmTransaction),
+    #[weight(0)]
     EvmMapping(Transaction<certificate::EvmMapping>),
 }
 

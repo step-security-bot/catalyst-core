@@ -22,9 +22,10 @@ pub struct VoteTally {
     payload: VoteTallyPayload,
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, Arbitrary)]
 pub enum VoteTallyPayload {
     Public,
+    #[weight(0)]
     Private { inner: DecryptedPrivateTally },
 }
 

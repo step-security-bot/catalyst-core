@@ -181,7 +181,7 @@ mod proptest_impls {
         type Parameters = ();
         type Strategy = Map<VecStrategy<StrategyFor<u8>>, fn(Vec<u8>) -> Self>;
 
-        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+        fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
             vec(any::<u8>(), A::SIGNATURE_SIZE)
                 .prop_map(|bytes| Signature::from_binary(&bytes).unwrap())
         }

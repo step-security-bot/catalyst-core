@@ -155,7 +155,7 @@ mod proptest_impls {
         type Parameters = ();
         type Strategy = Map<StrategyFor<BlockInputs>, fn(BlockInputs) -> Self>;
 
-        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+        fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
             any::<BlockInputs>().prop_map(
                 |(contents, ver, parent_hash, chain_length, date, bft_proof, gp_proof)| {
                     let hdrbuilder = HeaderBuilderNew::new(ver, &contents)
@@ -189,7 +189,7 @@ mod proptest_impls {
         type Parameters = ();
         type Strategy = Map<VecStrategy<StrategyFor<Fragment>>, fn(Vec<Fragment>) -> Self>;
 
-        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+        fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
             vec(any::<Fragment>(), 0..12).prop_map(|v| {
                 let mut content = ContentsBuilder::new();
                 content.push_many(v);
