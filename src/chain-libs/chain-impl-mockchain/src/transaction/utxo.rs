@@ -4,7 +4,7 @@ use crate::value::*;
 pub type TransactionIndex = u8;
 
 /// Unspent transaction pointer.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, test_strategy::Arbitrary)]
 pub struct UtxoPointer {
     /// the transaction identifier where the unspent output is
     pub transaction_id: FragmentId,

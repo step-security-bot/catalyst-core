@@ -29,7 +29,7 @@ pub type TransactionSignDataHash = DigestOf<Blake2b256, TransactionSignData>;
 #[derive(Debug, Clone)]
 pub struct TransactionBindingAuthDataPhantom();
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, test_strategy::Arbitrary)]
 pub struct SingleAccountBindingSignature(
     pub(crate) Signature<TransactionBindingAuthDataPhantom, Ed25519>,
 );
@@ -70,9 +70,10 @@ impl DeserializeFromSlice for SingleAccountBindingSignature {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, test_strategy::Arbitrary)]
 pub enum AccountBindingSignature {
     Single(SingleAccountBindingSignature),
+    #[weight(0)]
     Multi(u32), // TODO
 }
 

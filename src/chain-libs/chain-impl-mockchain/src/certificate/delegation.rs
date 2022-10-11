@@ -10,6 +10,7 @@ use chain_core::{
     packer::Codec,
     property::{Deserialize, ReadError, Serialize},
 };
+use test_strategy::Arbitrary;
 use std::marker::PhantomData;
 use typed_bytes::{ByteArray, ByteBuilder};
 
@@ -17,7 +18,7 @@ use typed_bytes::{ByteArray, ByteBuilder};
 ///
 /// This structure is not sufficient to identify the owner, and instead we rely on a special
 /// authenticated transaction, which has 1 input.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Arbitrary)]
 pub struct OwnerStakeDelegation {
     pub delegation: DelegationType,
 }
@@ -35,7 +36,7 @@ impl OwnerStakeDelegation {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Arbitrary)]
 pub struct StakeDelegation {
     pub account_id: UnspecifiedAccountIdentifier,
     pub delegation: DelegationType,

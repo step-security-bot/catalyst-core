@@ -4,16 +4,18 @@ use chain_core::{
     property::{Deserialize, ReadError},
 };
 use imhamt::Hamt;
+use test_strategy::Arbitrary;
 use std::collections::hash_map::DefaultHasher;
 use typed_bytes::ByteBuilder;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Arbitrary)]
 pub enum TreasuryGovernanceAction {
+    #[weight(0)]
     NoOp,
     TransferToRewards { value: Value },
 }
 
-#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Arbitrary)]
 pub enum TreasuryGovernanceActionType {
     NoOp,
     TransferToRewards,

@@ -21,14 +21,17 @@ use quickcheck::{Arbitrary, Gen};
 use test_strategy::proptest;
 
 #[proptest]
-    fn header_serialization_bijection(b: crate::header::Header) {
-        serialization_bijection(b);
-    }
+fn header_serialization_bijection(b: crate::header::Header) {
+    serialization_bijection(b);
+}
+
+#[proptest]
+fn block_serialization_bijection(b: Block) {
+    serialization_bijection(b);
+}
+
 quickcheck! {
 
-    fn block_serialization_bijection(b: Block) -> TestResult {
-        serialization_bijection(b)
-    }
 
     fn header_properties(block: Block) -> TestResult {
         use chain_core::property::Header as Prop;
@@ -114,6 +117,84 @@ impl Arbitrary for Block {
         Block {
             header,
             contents: content,
+        }
+    }
+}
+
+mod proptest_impls {
+    use proptest::{
+        arbitrary::StrategyFor,
+        collection::{vec, VecStrategy},
+        prelude::*,
+        strategy::Map,
+    };
+
+    use crate::{
+        block::{
+            BftProof, BlockDate, BlockVersion, ChainLength, Contents, ContentsBuilder,
+            GenesisPraosProof,
+        },
+        fragment::Fragment,
+        header::HeaderBuilderNew,
+        key::Hash,
+    };
+
+    use super::Block;
+
+    type BlockInputs = (
+        Contents,
+        BlockVersion,
+        Hash,
+        ChainLength,
+        BlockDate,
+        BftProof,
+        GenesisPraosProof,
+    );
+
+    impl Arbitrary for Block {
+        type Parameters = ();
+        type Strategy = Map<StrategyFor<BlockInputs>, fn(BlockInputs) -> Self>;
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            any::<BlockInputs>().prop_map(
+                |(contents, ver, parent_hash, chain_length, date, bft_proof, gp_proof)| {
+                    let hdrbuilder = HeaderBuilderNew::new(ver, &contents)
+                        .set_parent(&parent_hash, chain_length)
+                        .set_date(date);
+                    let header = match ver {
+                        BlockVersion::Genesis => {
+                            hdrbuilder.into_unsigned_header().unwrap().generalize()
+                        }
+                        BlockVersion::Ed25519Signed => hdrbuilder
+                            .into_bft_builder()
+                            .unwrap()
+                            .set_consensus_data(&bft_proof.leader_id)
+                            .set_signature(bft_proof.signature)
+                            .generalize(),
+                        BlockVersion::KesVrfproof => hdrbuilder
+                            .into_genesis_praos_builder()
+                            .unwrap()
+                            .set_consensus_data(&gp_proof.node_id, &gp_proof.vrf_proof)
+                            .set_signature(gp_proof.kes_proof)
+                            .generalize(),
+                    };
+
+                    Block { header, contents }
+                },
+            )
+        }
+    }
+
+    impl Arbitrary for Contents {
+        type Parameters = ();
+        type Strategy = Map<VecStrategy<StrategyFor<Fragment>>, fn(Vec<Fragment>) -> Self>;
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            vec(any::<Fragment>(), 0..12).prop_map(|v| {
+                let mut content = ContentsBuilder::new();
+                content.push_many(v);
+                Self::from(content)
+            })
         }
     }
 }

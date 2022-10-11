@@ -17,7 +17,7 @@ pub struct LinearFee {
     pub per_vote_certificate_fees: PerVoteCertificateFee,
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Debug, Clone, Copy, Default)]
+#[derive(PartialEq, Eq, PartialOrd, Debug, Clone, Copy, Default, test_strategy::Arbitrary)]
 pub struct PerCertificateFee {
     pub certificate_pool_registration: Option<NonZeroU64>,
     pub certificate_stake_delegation: Option<NonZeroU64>,

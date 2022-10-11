@@ -12,6 +12,7 @@ use chain_core::{
 };
 use chain_crypto::Verification;
 use chain_vote::TallyDecryptShare;
+use test_strategy::Arbitrary;
 use thiserror::Error;
 use typed_bytes::{ByteArray, ByteBuilder};
 
@@ -27,13 +28,13 @@ pub enum VoteTallyPayload {
     Private { inner: DecryptedPrivateTally },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Arbitrary)]
 pub enum TallyProof {
     Public {
         id: CommitteeId,
         signature: SingleAccountBindingSignature,
     },
-
+    #[weight(0)]
     Private {
         id: CommitteeId,
         signature: SingleAccountBindingSignature,

@@ -14,7 +14,7 @@ use thiserror::Error;
 /// this value is used to identify a committee member on chain
 /// as well as to use as input for the vote casting payload.
 ///
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, test_strategy::Arbitrary)]
 pub struct CommitteeId([u8; CommitteeId::COMMITTEE_ID_SIZE]);
 
 impl CommitteeId {

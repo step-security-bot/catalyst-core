@@ -233,3 +233,39 @@ impl Arbitrary for AccountIdentifier {
         }
     }
 }
+
+mod proptest_impls {
+    use chain_addr::Address;
+    use proptest::{collection::vec, prelude::*};
+
+    use crate::transaction::{Input, Output, Payload, Transaction, UtxoPointer, Witness, TxBuilder};
+
+
+    impl<T> Arbitrary for Transaction<T>
+    where
+        T: Arbitrary + Payload,
+        T::Auth: Arbitrary,
+    {
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            any::<(T, T::Auth)>()
+                .prop_flat_map(|(t, auth)| {
+                    (0..16, 0..16)
+                        .prop_map(|(num_inputs, num_outputs)| (t, auth, num_inputs, num_outputs))
+                })
+                .prop_flat_map(|(t, auth, num_inputs, num_outputs)| {
+                    let inputs = vec(any::<Input>(), num_inputs);
+                    let outputs = vec(any::<Output<Address>>(), num_outputs);
+                    let witnesses = vec(any::<Witness>(), num_inputs);
+
+                    (inputs, outputs, witnesses).prop_map(|(inputs, outputs, witnesses)| {
+                        TxBuilder::new()
+                            .set_payload(&payload)
+                            .set_expiry_date(BlockDate::first().next_epoch())
+                            .set_ios(&inputs, &outputs)
+                            .set_witnesses(&witnesses)
+                            .set_payload_auth(&payload_auth)
+                    })
+                })
+        }
+    }
+}

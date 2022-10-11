@@ -120,7 +120,7 @@ impl<'a, P: ?Sized> PayloadAuthSlice<'a, P> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, test_strategy::Arbitrary)]
 pub struct NoExtra;
 
 impl Serialize for NoExtra {

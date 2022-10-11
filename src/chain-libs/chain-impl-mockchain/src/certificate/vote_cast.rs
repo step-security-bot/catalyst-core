@@ -7,9 +7,10 @@ use chain_core::{
     packer::Codec,
     property::{Deserialize, DeserializeFromSlice, ReadError, Serialize, WriteError},
 };
+use test_strategy::Arbitrary;
 use typed_bytes::{ByteArray, ByteBuilder};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Arbitrary)]
 pub struct VoteCast {
     vote_plan: VotePlanId,
     proposal_index: u8,

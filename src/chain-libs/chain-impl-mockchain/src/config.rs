@@ -17,6 +17,7 @@ use chain_core::{
 use chain_crypto::PublicKey;
 #[cfg(feature = "evm")]
 use chain_evm::Config;
+use proptest::strategy::Just;
 use std::{
     fmt::{self, Display, Formatter},
     io::{self, Write},
@@ -67,7 +68,7 @@ pub enum ConfigParam {
     Discrimination(Discrimination),
     ConsensusVersion(ConsensusType),
     SlotsPerEpoch(u32),
-    SlotDuration(#[strategy(1..)] u8),
+    SlotDuration(#[strategy(1u8..)] u8),
     EpochStabilityDepth(u32),
     ConsensusGenesisPraosActiveSlotsCoeff(Milli),
     BlockContentMaxSize(u32),
@@ -95,18 +96,20 @@ pub enum ConfigParam {
     EvmEnvironment(EvmEnvSettings),
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, test_strategy::Arbitrary)]
 pub enum RewardParams {
     Linear {
         constant: u64,
         ratio: Ratio,
         epoch_start: Epoch,
+        #[strategy(Just(20.try_into().unwrap()))]
         epoch_rate: NonZeroU32,
     },
     Halving {
         constant: u64,
         ratio: Ratio,
         epoch_start: Epoch,
+        #[strategy(Just(20.try_into().unwrap()))]
         epoch_rate: NonZeroU32,
     },
 }
@@ -439,7 +442,7 @@ trait ConfigParamVariant: Clone + Eq + PartialEq {
 }
 
 /// Seconds elapsed since 1-Jan-1970 (unix time)
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, test_strategy::Arbitrary)]
 pub struct Block0Date(pub u64);
 
 impl ConfigParamVariant for Block0Date {

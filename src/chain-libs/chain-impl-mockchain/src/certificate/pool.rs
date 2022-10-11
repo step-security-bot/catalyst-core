@@ -11,6 +11,7 @@ use chain_core::{
 };
 use chain_crypto::{digest::DigestOf, Blake2b256, Ed25519, PublicKey, Verification};
 use chain_time::{DurationSeconds, TimeOffsetSeconds};
+use test_strategy::Arbitrary;
 use std::marker::PhantomData;
 use typed_bytes::{ByteArray, ByteBuilder};
 
@@ -27,11 +28,7 @@ pub type GenesisPraosLeaderHash = DigestOf<Blake2b256, GenesisPraosLeader>;
 pub type IndexSignatures = Vec<(u8, SingleAccountBindingSignature)>;
 
 /// Pool information
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    any(test, feature = "property-test-api"),
-    derive(test_strategy::Arbitrary)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, test_strategy::Arbitrary)]
 pub struct PoolRegistration {
     /// A random value, for user purpose similar to a UUID.
     /// it may not be unique over a blockchain, so shouldn't be used a unique identifier
@@ -90,7 +87,7 @@ impl PoolPermissions {
 }
 
 /// Updating info for a pool
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Arbitrary)]
 pub struct PoolUpdate {
     pub pool_id: PoolId,
     pub last_pool_reg_hash: PoolRegistrationHash,
@@ -98,13 +95,13 @@ pub struct PoolUpdate {
 }
 
 /// Retirement info for a pool
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, test_strategy::Arbitrary)]
 pub struct PoolRetirement {
     pub pool_id: PoolId,
     pub retirement_time: TimeOffsetSeconds,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Arbitrary)]
 pub enum PoolSignature {
     Operator(SingleAccountBindingSignature),
     Owners(PoolOwnersSignature),

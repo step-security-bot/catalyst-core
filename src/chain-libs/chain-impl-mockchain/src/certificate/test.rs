@@ -334,3 +334,183 @@ fn pool_reg_serialization_bijection(b: PoolRegistration) -> TestResult {
     let result = PoolRegistration::deserialize_from_slice(&mut Codec::new(b_got.as_ref())).unwrap();
     TestResult::from_bool(b == result)
 }
+
+mod proptest_impls {
+    use std::num::NonZeroU8;
+
+    use chain_vote::{Crs, EncryptedTally};
+    use proptest::{
+        arbitrary::StrategyFor,
+        collection::{vec, VecStrategy},
+        prelude::*,
+        strategy::Map,
+    };
+    use rand::SeedableRng;
+    use rand_chacha::ChaChaRng;
+
+    use crate::{
+        block::BlockDate,
+        certificate::{
+            pool::PoolOwnersSignature, DecryptedPrivateTally, DecryptedPrivateTallyProposal,
+            Proposal, Proposals, VotePlan, VotePlanId, VoteTally,
+        },
+        testing::data::CommitteeMembersManager,
+        tokens::identifier::TokenIdentifier,
+        transaction::SingleAccountBindingSignature,
+        vote::PayloadType,
+    };
+
+    type VotePlanInputs = (
+        BlockDate,
+        BlockDate,
+        BlockDate,
+        Proposals,
+        PayloadType,
+        TokenIdentifier,
+    );
+
+    impl Arbitrary for VotePlan {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>; // TODO: remove boxing when TAIT stabilized
+                                             //
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            any::<[u8; 32]>()
+                .prop_flat_map(|seed| (1usize..16).prop_map(|n| (seed, n)))
+                .prop_flat_map(|(seed, keys_n)| {
+                    let mut keys = Vec::with_capacity(keys_n);
+                    let mut rng = rand_chacha::ChaCha20Rng::from_seed(seed);
+                    let h = chain_vote::Crs::from_hash(&seed);
+                    for _ in 0..keys_n {
+                        let mc = chain_vote::MemberCommunicationKey::new(&mut rng);
+                        let threshold = 1;
+                        let m1 = chain_vote::MemberState::new(
+                            &mut rng,
+                            threshold,
+                            &h,
+                            &[mc.to_public()],
+                            0,
+                        );
+                        keys.push(m1.public_key());
+                    }
+
+                    any::<VotePlanInputs>().prop_map(
+                        |(
+                            vote_start,
+                            vote_end,
+                            committee_end,
+                            proposals,
+                            payload_type,
+                            voting_token,
+                        )| {
+                            Self::new(
+                                vote_start,
+                                vote_end,
+                                committee_end,
+                                proposals,
+                                payload_type,
+                                keys,
+                                voting_token,
+                            )
+                        },
+                    )
+                })
+                .boxed()
+
+            // any::<VotePlanInputs>().prop_map
+        }
+    }
+
+    impl Arbitrary for Proposals {
+        type Parameters = ();
+        type Strategy = Map<VecStrategy<StrategyFor<Proposal>>, fn(Vec<Proposal>) -> Self>;
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            vec(any::<Proposal>(), 0..Proposals::MAX_LEN).prop_map(|props| {
+                let mut proposals = Proposals::new();
+                for prop in props {
+                    let _ = proposals.push(prop);
+                }
+                proposals
+            })
+        }
+    }
+
+    impl Arbitrary for PoolOwnersSignature {
+        type Parameters = ();
+        type Strategy = Map<
+            VecStrategy<StrategyFor<SingleAccountBindingSignature>>,
+            fn(Vec<SingleAccountBindingSignature>) -> Self,
+        >;
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            vec(any::<SingleAccountBindingSignature>(), 1..32).prop_map(|vec| {
+                let signatures = vec
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, x)| (i as u8, x))
+                    .collect();
+                Self { signatures }
+            })
+        }
+    }
+
+    fn decrypted_private_tally_strategy() -> impl Strategy<Value = VoteTally> {
+        any::<(u8, u64, String, bool)>()
+            .prop_map(|(n, seed, crs_seed, one_or_two)| {
+                let size = match one_or_two {
+                    true => 1,
+                    false => 2,
+                };
+                (n, seed, crs_seed, size)
+            })
+            .prop_flat_map(|(proposals_n, seed, crs_seed, committee_size)| {
+                let crs_seed = crs_seed.clone();
+                let mut rng = ChaChaRng::seed_from_u64(seed);
+                let committee_manager = CommitteeMembersManager::new(
+                    &mut rng,
+                    crs_seed.as_bytes(),
+                    committee_size,
+                    committee_size,
+                );
+
+                let single_item = vec(any::<u64>(), 1..255).prop_map(move |options| {
+                    let mut rng = rng.clone();
+                    let encrypted_tally = EncryptedTally::new(
+                        options.len(),
+                        committee_manager.election_pk(),
+                        Crs::from_hash(crs_seed.as_bytes()),
+                    );
+
+                    let mut decrypte_shares = Vec::new();
+                    for i in 0..committee_size {
+                        decrypte_shares.push(encrypted_tally.partial_decrypt(
+                            &mut rng,
+                            committee_manager.members()[i].secret_key(),
+                        ));
+                    }
+
+                    DecryptedPrivateTallyProposal {
+                        tally_result: options.into_boxed_slice(),
+                        decrypt_shares: decrypte_shares.into_boxed_slice(),
+                    }
+                });
+
+                vec(single_item, proposals_n as usize).prop_flat_map(|inner| {
+                    let tally = DecryptedPrivateTally::new(inner).unwrap();
+                    any::<VotePlanId>().prop_map(move |id| VoteTally::new_private(id, tally.clone()))
+                })
+            })
+    }
+
+    impl Arbitrary for VoteTally {
+        type Parameters = ();
+        type Strategy = BoxedStrategy<Self>; // TODO: remove box when TAIT stabilized
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            let public_strategy = any::<VotePlanId>().prop_map(Self::new_public);
+            let private_strategy = decrypted_private_tally_strategy();
+
+            prop_oneof![private_strategy, public_strategy,].boxed()
+        }
+    }
+}

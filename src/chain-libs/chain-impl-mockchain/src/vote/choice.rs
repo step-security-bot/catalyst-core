@@ -1,4 +1,5 @@
 use core::ops::Range;
+use test_strategy::Arbitrary;
 use thiserror::Error;
 
 /// error that may occur when creating a new `Options` using
@@ -25,7 +26,7 @@ pub struct Options {
 ///
 /// A `Choice` is a representation of a choice that has been made and must
 /// be compliant with the `Options`. A way to validate it is with `Options::validate`.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, Arbitrary)]
 pub struct Choice(u8);
 
 impl Options {
@@ -139,6 +140,23 @@ mod tests {
         } else {
             let options = options.expect("non `0` options should always be valid");
             assert!(options.as_byte() == num_choices)
+        }
+    }
+}
+
+mod proptest_impls {
+    use std::ops::RangeFrom;
+
+    use proptest::{prelude::*, strategy::Map};
+
+    use super::Options;
+
+    impl Arbitrary for Options {
+        type Parameters = ();
+        type Strategy = Map<RangeFrom<u8>, fn(u8) -> Self>;
+
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            (1u8..).prop_map(|i| Self::new_length(i).unwrap())
         }
     }
 }

@@ -3,6 +3,7 @@ use chain_core::packer::Codec;
 use chain_core::property::ReadError;
 use chain_vote::Ciphertext;
 use std::hash::Hash;
+use test_strategy::Arbitrary;
 use thiserror::Error;
 use typed_bytes::{ByteArray, ByteBuilder};
 
@@ -16,7 +17,7 @@ use typed_bytes::{ByteArray, ByteBuilder};
 /// assert_eq!(PayloadType::Public, PayloadType::default());
 /// ```
 ///
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Ord, PartialOrd, Hash, Arbitrary)]
 #[repr(u8)]
 pub enum PayloadType {
     Public = 1,
@@ -233,6 +234,47 @@ mod tests {
                     )
                 }
             }
+        }
+    }
+}
+
+mod proptest_impls {
+    use chain_vote::{Crs, ElectionPublicKey, MemberCommunicationKey, MemberState, Vote};
+    use proptest::{prelude::*, arbitrary::StrategyFor, strategy::Map};
+
+    use crate::vote::Choice;
+
+    use super::{Payload, PayloadType, EncryptedVote, ProofOfCorrectVote};
+
+    type PayloadInputs = (PayloadType, Choice, [u8; 32]);
+
+    impl Arbitrary for Payload {
+        type Parameters = ();
+        type Strategy = Map<StrategyFor<PayloadInputs>, fn(PayloadInputs) -> Self>;
+        fn arbitrary_with(args: Self::Parameters) -> Self::Strategy {
+            any::<PayloadInputs>().prop_map(|(ty, choice, seed)| match ty {
+                PayloadType::Public => Payload::Public { choice },
+                PayloadType::Private => {
+                    let mut gen = rand_chacha::ChaCha20Rng::from_seed(seed);
+                    let mc = MemberCommunicationKey::new(&mut gen);
+                    let threshold = 1;
+                    let h = Crs::from_hash(&seed);
+                    let m = MemberState::new(&mut gen, threshold, &h, &[mc.to_public()], 0);
+                    let participants = vec![m.public_key()];
+                    let ek = ElectionPublicKey::from_participants(&participants);
+                    let vote_options = 3;
+                    let choice = g.next_u32() % vote_options;
+                    let (vote, proof) = ek.encrypt_and_prove_vote(
+                        &mut gen,
+                        &h,
+                        Vote::new(vote_options as usize, choice as usize),
+                    );
+                    Payload::private(
+                        EncryptedVote::from_inner(vote),
+                        ProofOfCorrectVote::from_inner(proof),
+                    )
+                }
+            })
         }
     }
 }

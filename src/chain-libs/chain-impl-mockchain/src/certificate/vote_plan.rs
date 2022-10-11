@@ -15,6 +15,7 @@ use chain_core::{
 };
 use chain_crypto::{digest::DigestOf, Blake2b256, Verification};
 use chain_vote::MemberPublicKey;
+use test_strategy::Arbitrary;
 use std::ops::Deref;
 use typed_bytes::{ByteArray, ByteBuilder};
 
@@ -54,7 +55,7 @@ pub struct VotePlan {
     voting_token: TokenIdentifier,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Arbitrary)]
 pub struct VotePlanProof {
     pub id: vote::CommitteeId,
     pub signature: SingleAccountBindingSignature,
@@ -63,13 +64,14 @@ pub struct VotePlanProof {
 /// this is the action that will result of the vote
 ///
 ///
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Arbitrary)]
 pub enum VoteAction {
     /// the action if off chain or not relevant to the blockchain
     OffChain,
     /// control the treasury
     Treasury { action: TreasuryGovernanceAction },
     /// control the parameters
+    #[weight(0)]
     Parameters { action: ParametersGovernanceAction },
 }
 
@@ -86,7 +88,7 @@ pub struct Proposals {
 /// with its unique identifier and the funding plan required
 /// for the proposal to be operated.
 ///
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Arbitrary)]
 pub struct Proposal {
     external_id: ExternalProposalId,
     options: vote::Options,

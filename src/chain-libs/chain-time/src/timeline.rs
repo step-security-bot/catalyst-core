@@ -10,11 +10,7 @@ pub struct Timeline(pub(crate) SystemTime);
 pub struct TimeOffset(pub(crate) Duration);
 
 /// Represent an offset in seconds in the timeline
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(
-    any(test, feature = "property-test-api"),
-    derive(test_strategy::Arbitrary)
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, test_strategy::Arbitrary)]
 pub struct TimeOffsetSeconds(pub(crate) DurationSeconds);
 
 impl From<SystemTime> for Timeline {

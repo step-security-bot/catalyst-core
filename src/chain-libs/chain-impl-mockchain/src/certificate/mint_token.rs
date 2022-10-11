@@ -13,11 +13,7 @@ use typed_bytes::{ByteArray, ByteBuilder};
 
 use std::marker::PhantomData;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(
-    any(test, feature = "property-test-api"),
-    derive(test_strategy::Arbitrary)
-)]
+#[derive(Debug, Clone, PartialEq, Eq, test_strategy::Arbitrary)]
 pub struct MintToken {
     pub name: TokenName,
     pub policy: MintingPolicy,
@@ -102,9 +98,8 @@ mod tests {
     use super::*;
     #[cfg(test)]
     use crate::testing::serialization::serialization_bijection;
-    #[cfg(test)]
-    use quickcheck::TestResult;
     use quickcheck::{Arbitrary, Gen};
+    use test_strategy::proptest;
 
     impl Arbitrary for MintToken {
         fn arbitrary<G: Gen>(g: &mut G) -> Self {
@@ -121,9 +116,8 @@ mod tests {
         }
     }
 
-    quickcheck! {
-        fn minttoken_serialization_bijection(b: MintToken) -> TestResult {
-            serialization_bijection(b)
-        }
+    #[proptest]
+    fn minttoken_serialization_bijection(b: MintToken) {
+        serialization_bijection(b);
     }
 }

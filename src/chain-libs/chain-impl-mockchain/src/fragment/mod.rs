@@ -23,7 +23,7 @@ pub type FragmentId = Hash;
 pub mod test;
 
 /// All possible messages recordable in the content
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, test_strategy::Arbitrary)]
 pub enum Fragment {
     Initial(ConfigParams),
     OldUtxoDeclaration(legacy::UtxoDeclaration),
