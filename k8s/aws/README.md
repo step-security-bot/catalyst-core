@@ -1,5 +1,12 @@
 # Amazon AWS EKS and RDS PostgreSQL with terraform
 
+See:
+<https://dzone.com/articles/amazon-aws-eks-and-rds-postgresql-with-terraform-i>
+<https://aws.amazon.com/blogs/database/deploy-amazon-rds-databases-for-applications-in-kubernetes/>
+<https://github.com/mudrii/eks_rds_terraform>
+<https://learnk8s.io/terraform-eks>
+<https://github.com/k-mitevski/terraform-k8s>
+
 Assuming you already have Amazon AWS account we will need additional binaries for AWS CLI, terraform, kubectland aws-iam-authenticator.
 
 This aws kubernetes installation is not currently nixified.
