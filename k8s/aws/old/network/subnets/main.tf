@@ -8,10 +8,8 @@ resource "aws_subnet" "subnet" {
   vpc_id                  = "${var.vpc_id}"
   map_public_ip_on_launch = true
 
-  tags = "${
-    map(
-     "Name", "terraform-eks-${terraform.workspace}",
-     "kubernetes.io/cluster/${var.eks_cluster_name}-${terraform.workspace}", "shared",
-    )
-  }"
+  tags = {
+     "Name"= "terraform-eks-${terraform.workspace}",
+     "kubernetes.io/cluster/${var.eks_cluster_name}-${terraform.workspace}"= "shared",
+  }
 }

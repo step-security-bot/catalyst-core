@@ -9,7 +9,7 @@ locals {
 resource "aws_default_route_table" "route" {
   default_route_table_id = "${var.main_route_table_id}"
 
-  tags {
+  tags = {
     Name = "${terraform.workspace}"
   }
 }
@@ -25,5 +25,5 @@ resource "aws_route" "route_internet" {
   route_table_id         = "${var.main_route_table_id}"
   destination_cidr_block = "0.0.0.0/0"
   gateway_id             = "${var.gw_id}"
-  depends_on             = ["aws_route_table_association.route_ass"]
+  depends_on             = [aws_route_table_association.route_ass]
 }

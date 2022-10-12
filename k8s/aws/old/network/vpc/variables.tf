@@ -1,5 +1,5 @@
 variable "cidr_block" {
-  type = "map"
+  type = map
 }
 
 variable "eks_cluster_name" {}

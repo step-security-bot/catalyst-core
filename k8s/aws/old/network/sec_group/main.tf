@@ -33,7 +33,7 @@ resource "aws_security_group" "sec_grp_rds" {
       "${var.vpc_cidr_block}"]
   } */
                
-  tags {
+  tags = {
     Name = "${terraform.workspace}"
   }
 }

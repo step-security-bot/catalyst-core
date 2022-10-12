@@ -70,55 +70,55 @@ output "sec_grp_rds" {
   value = "${module.sec_group_rds.sec_grp_rds}"
 }
 
-output "db_subnet_group_id" {
-	value = "${module.rds.db_subnet_group_id}"
-}
+#output "db_subnet_group_id" {
+#	value = "${module.rds.db_subnet_group_id}"
+#}
 
-output "db_subnet_group_arn" {
-value = "${module.rds.db_subnet_group_arn}"
-}
+#output "db_subnet_group_arn" {
+#value = "${module.rds.db_subnet_group_arn}"
+#}
 
-output "db_instance_address" {
-value = "${module.rds.db_instance_address}"
-}
+#output "db_instance_address" {
+#value = "${module.rds.db_instance_address}"
+#}
 
-output "db_instance_arn" {
-value = "${module.rds.db_instance_arn}"
-}
+#output "db_instance_arn" {
+#value = "${module.rds.db_instance_arn}"
+#}
 
-output "db_instance_availability_zone" {
-value = "${module.rds.db_instance_availability_zone}"
-}
+#output "db_instance_availability_zone" {
+#value = "${module.rds.db_instance_availability_zone}"
+#}
 
-output "db_instance_endpoint" {
-value = "${module.rds.db_instance_endpoint}"
-}
+#output "db_instance_endpoint" {
+#value = "${module.rds.db_instance_endpoint}"
+#}
 
-output "db_instance_id" {
-value = "${module.rds.db_instance_id}"
-}
+#output "db_instance_id" {
+#value = "${module.rds.db_instance_id}"
+#}
 
-output "db_instance_resource_id" {
-value = "${module.rds.db_instance_resource_id}"
-}
+#output "db_instance_resource_id" {
+#value = "${module.rds.db_instance_resource_id}"
+#}
 
-output "db_instance_status" {
-value = "${module.rds.db_instance_status}"
-}
+#output "db_instance_status" {
+#value = "${module.rds.db_instance_status}"
+#}
 
-output "db_instance_name" {
-value = "${module.rds.db_instance_name}"
-}
+#output "db_instance_name" {
+#value = "${module.rds.db_instance_name}"
+#}
 
-output "db_instance_username" {
-value = "${module.rds.db_instance_username}"
-}
+#output "db_instance_username" {
+#value = "${module.rds.db_instance_username}"
+#}
 
-output "db_instance_password" {
-value = "${module.rds.db_instance_password}"
-}
+#output "db_instance_password" {
+#value = "${module.rds.db_instance_password}"
+#}
 
-output "db_instance_port" {
-value = "${module.rds.db_instance_port}"
-}
+#output "db_instance_port" {
+#value = "${module.rds.db_instance_port}"
+#}
 

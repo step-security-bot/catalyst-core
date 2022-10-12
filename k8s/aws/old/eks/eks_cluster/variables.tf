@@ -5,7 +5,7 @@ variable "iam_cluster_arn" {}
 variable "iam_node_arn" {}
 
 variable "subnets" {
-  type = "list"
+  type = list
 }
 
 variable "security_group_cluster" {}

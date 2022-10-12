@@ -1,33 +1,34 @@
 variable "access_key" {
-  description = "AWS ACCEE_KEY"
+  description = "AWS ACCESS_KEY"
 }
 
 variable "secret_key" {
-  description = "AWS SECRETE_KEY"
+  description = "AWS SECRET_KEY"
 }
 
 variable "aws_region" {
   description = "AWS region to launch servers."
-  default     = "us-west-2"
+  default     = "eu-west-2"
 }
 
 variable "cidr_block" {
   description = "CIDR for the whole VPC"
 
   default = {
-    prod = "10.10.0.0/16"
-    dev  = "10.20.0.0/16"
+    prod    = "10.10.0.0/16"
+    testnet = "10.20.0.0/16"
+    dev     = "10.30.0.0/16"
   }
 }
 
 variable "eks_cluster_name" {
   description = "cluster name"
-  default     = "terra"
+  default     = "catalyst"
 }
 
 variable "identifier" {
   description = "Identifier for DB"
-  default     = "terra-db"
+  default     = "catalyst-db"
 }
 
 variable "storage_type" {
@@ -36,10 +37,11 @@ variable "storage_type" {
 }
 
 variable "allocated_storage" {
-  description = "ammount of storage allocated in GB"
+  description = "amount of storage allocated in GB"
 
   default = {
     prod = "100"
+    testnet = "100"
     dev  = "10"
   }
 }
@@ -51,15 +53,16 @@ variable "db_engine" {
 
 variable "engine_version" {
   description = "DB engine version"
-  default     = "9.6.6"
+  default     = "14.4-R1"
 }
 
 variable "instance_class" {
-  description = "mashine type to be used"
+  description = "machine type to be used"
 
   default = {
-    prod = "db.t2.micro"
-    dev  = "db.t2.large"
+    prod = "db.t2.large"
+    testnet  = "db.t2.micro"
+    dev  = "db.t2.micro"
   }
 }
 

@@ -4,6 +4,6 @@ resource "aws_eks_cluster" "terra" {
 
   vpc_config {
     security_group_ids = ["${var.security_group_cluster}"]
-    subnet_ids         = ["${var.subnets}"]
+    subnet_ids         = "${var.subnets}"
   }
 }

@@ -1,5 +1,5 @@
 variable "subnets" {
-  type = "list"
+  type = list
 }
 
 variable "identifier" {}
@@ -7,7 +7,7 @@ variable "identifier" {}
 variable "storage_type" {}
 
 variable "allocated_storage" {
-  type = "map"
+  type = map
 }
 
 variable "db_engine" {}
@@ -15,7 +15,7 @@ variable "db_engine" {}
 variable "engine_version" {}
 
 variable "instance_class" {
-  type = "map"
+  type = map
 }
 
 variable "db_username" {}

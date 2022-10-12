@@ -19,6 +19,6 @@ variable "security_group_node" {
 }
 
 variable "subnets" {
-  type = "list"
+  type = list
 }
 

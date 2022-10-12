@@ -9,19 +9,17 @@ resource "aws_vpc" "vpc_id" {
     create_before_destroy = true
   }
 
-  tags = "${
-    map(
-     "Name", "terraform-eks-${terraform.workspace}",
-     "kubernetes.io/cluster/${var.eks_cluster_name}-${terraform.workspace}", "shared",
-    )
-  }"
+  tags = {
+     "Name"= "terraform-eks-${terraform.workspace}",
+     "kubernetes.io/cluster/${var.eks_cluster_name}-${terraform.workspace}"= "shared",
+    }
 }
 
 # Create an internet gateway to give our subnet access to the outside world
 resource "aws_internet_gateway" "gw_id" {
   vpc_id = "${aws_vpc.vpc_id.id}"
 
-  tags {
+  tags = {
     Name = "${terraform.workspace}"
   }
 }
@@ -31,7 +29,7 @@ resource "aws_vpc_dhcp_options" "vpc_dhcp_id" {
   domain_name         = "us-west-2.compute.internal"
   domain_name_servers = ["AmazonProvidedDNS"]
 
-  tags {
+  tags = {
     Name = "${terraform.workspace}"
   }
 }

@@ -13,7 +13,7 @@ resource "aws_security_group" "cluster" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags {
+  tags = {
     Name = "${terraform.workspace}"
   }
 }
@@ -53,12 +53,10 @@ resource "aws_security_group" "node" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
-  tags = "${
-    map(
-     "Name", "terraform-eks-${terraform.workspace}",
-     "kubernetes.io/cluster/${var.eks_cluster_name}-${terraform.workspace}", "owned",
-    )
-  }"
+  tags = {
+     "Name"= "terraform-eks-${terraform.workspace}",
+     "kubernetes.io/cluster/${var.eks_cluster_name}-${terraform.workspace}"= "owned",
+  }
 }
 
 resource "aws_security_group_rule" "node-ingress-self" {
