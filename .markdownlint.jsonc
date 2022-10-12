@@ -1,0 +1,5 @@
+{
+    "MD036": false, // Disable Emphasis as Header Lint
+    "MD028": false,  // Disable Space in Quote
+    "MD013": false   // Disable Lines longer than 80 characters
+}
