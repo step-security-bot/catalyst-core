@@ -41,21 +41,14 @@ kubectl.
 
 ### Deploying terraform
 
-#### terraform for OS X
+Download and install V1.2.9 ONLY from: <https://www.terraform.io/downloads>
+Currently Amazon does not support the syntax of Terraform 1.3.x
 
 ```sh
-curl -o terraform_0.11.7_darwin_amd64.zip \
-https://releases.hashicorp.com/terraform/0.11.7/terraform_0.11.7_darwin_amd64.zip
-
-unzip terraform_0.11.7_linux_amd64.zip -d /usr/local/bin/
-```
-
-#### terraform for Linux
-
-```sh
-curl https://releases.hashicorp.com/terraform/0.11.7/terraform_0.11.7_linux_amd64.zip > terraform_0.11.7_linux_amd64.zip
-
-unzip terraform_0.11.7_linux_amd64.zip -d /usr/local/bin/
+$ unzip ../terraform_1.2.9_linux_amd64.zip
+Archive:  ../terraform_1.2.9_linux_amd64.zip
+  inflating: terraform
+$ sudo mv terraform /usr/local/bin
 ```
 
 #### terraform installation verification
@@ -63,8 +56,17 @@ unzip terraform_0.11.7_linux_amd64.zip -d /usr/local/bin/
 Verify terraform version 0.11.7 or higher is installed:
 
 ```sh
-terraform version
+$ terraform version
+Terraform v1.2.9
+on linux_amd64
+
+Your version of Terraform is out of date! The latest version
+is 1.3.2. You can update by downloading from https://www.terraform.io/downloads.html
 ```
+
+Ensure your installed version is 1.2.9, and disregard the out of date warning and request to upgrade.
+
+When referencing documentation for terraform, ensure you refer to v1.2.x
 
 ### Deploying kubectl
 
@@ -220,82 +222,6 @@ aws s3 mb s3://catalyst-dev-tfstate --region eu-west-2
 aws s3api put-bucket-versioning --bucket catalyst-dev-tfstate --versioning-configuration Status=Enabled
 ```
 
-## Creating Kubernetes cluster on AWS EKS and RDS on PostgreSQL
-
-Now we can move into creating new infrastructure, eks and rds with terraform
-
-```sh
-    .
-    ├── backend.tf
-    ├── eks
-    │   ├── eks_cluster
-    │   │   ├── main.tf
-    │   │   ├── outputs.tf
-    │   │   └── variables.tf
-    │   ├── eks_iam_roles
-    │   │   ├── main.tf
-    │   │   └── outputs.tf
-    │   ├── eks_node
-    │   │   ├── main.tf
-    │   │   ├── outputs.tf
-    │   │   ├── userdata.tpl
-    │   │   └── variables.tf
-    │   └── eks_sec_group
-    │       ├── main.tf
-    │       ├── outputs.tf
-    │       └── variables.tf
-    ├── main.tf
-    ├── network
-    │   ├── route
-    │   │   ├── main.tf
-    │   │   ├── outputs.tf
-    │   │   └── variables.tf
-    │   ├── sec_group
-    │   │   ├── main.tf
-    │   │   ├── outputs.tf
-    │   │   └── variables.tf
-    │   ├── subnets
-    │   │   ├── main.tf
-    │   │   ├── outputs.tf
-    │   │   └── variables.tf
-    │   └── vpc
-    │       ├── main.tf
-    │       ├── outputs.tf
-    │       └── variables.tf
-    ├── outputs.tf
-    ├── rds
-    │   ├── main.tf
-    │   ├── outputs.tf
-    │   └── variables.tf
-    ├── README.md
-    ├── terraform.tfvars
-    ├── variables.tf
-    └── yaml
-        ├── eks-admin-cluster-role-binding.yaml
-        └── eks-admin-service-account.yaml
-```
-
-We will use terraform modules to keep our code clean and organized Terraform
-will run 2 separate environment dev and prod using same sources only difference
-in this case is number of worker nodes for kubernetes.
-
-See: [variables.tf](./variables.tf)
-
-Terraform modules will create
-
-* VPC
-* Subnets
-* Routes
-* IAM Roles for master and nodes
-* Security Groups "Firewall" to allow master and nodes to communicate
-* EKS cluster
-* Autoscaling Group will create nodes to be added to the cluster
-* Security group for RDS
-* RDS with PostgreSQL
-
-> NOTE: very important to keep tags as if tags is not specify nodes will not be
-> able to join cluster
-
 ### Initial setup create and create new workspace for terraform
 
 cd into project folder and create workspace for dev and prod
@@ -367,12 +293,6 @@ $ terraform workspace list
 terraform workspace select dev
 ```
 
-Before we can start will need to update variables and add db password to terraform.tfvars
-
-```sh
-echo 'db_password = "Your_DB_Passwd."' >> terraform.tfvars
-```
-
 #### It's a good idea to sync terraform modules
 
 ```sh
@@ -390,111 +310,14 @@ terraform plan
 > NOTE: building complete infrastructure may take more than 10 minutes.
 
 ```sh
-terraform apply
+terraform apply -auto-approve
 ```
-
-[![asciicast](https://asciinema.org/a/195802.png)](https://asciinema.org/a/195802)
 
 ### Verify instance creation
 
 ```sh
 aws ec2 describe-instances --output table
 ```
-
-### We are not done yet
-
-#### Create new AWS CLI profile
-
-In order to use kubectl with EKS we need to set new AWS CLI profile
-
-> NOTE: will need to use secret and access keys from terraform.tfvars
-
-```sh
-cat terraform.tfvars
-
-aws configure --profile terraform
-
-export AWS_PROFILE=terraform
-```
-
-#### Configure kubectl to allow us to connect to EKS cluster
-
-In terraform configuration we output configuration file for kubectl
-
-```sh
-terraform output kubeconfig
-```
-
-#### Add output of "terraform output kubeconfig" to ~/.kube/config-devel
-
-```sh
-terraform output kubeconfig > ~/.kube/config-devel
-
-export KUBECONFIG=$KUBECONFIG:~/.kube/config-devel
-```
-
-#### Verify kubectl connectivity
-
-```sh
-kubectl get namespaces
-
-kubectl get services
-```
-
-#### Second part we need to allow EKS to add nodes by running configmap
-
-```sh
-terraform output config_map_aws_auth > yaml/config_map_aws_auth.yaml
-
-kubectl apply -f yaml/config_map_aws_auth.yaml
-```
-
-#### Now you should be able to see nodes
-
-```sh
-kubectl get nodes
-```
-
-[![asciicast](https://asciinema.org/a/195818.png)](https://asciinema.org/a/195818)
-
-## Working with terraform on EKS
-
-### Deploy the [Kubernetes Dashboard](https://github.com/kubernetes/dashboard)
-
-#### Deploy the Kubernetes dashboard
-
-```sh
-kubectl apply -f \
-https://raw.githubusercontent.com/kubernetes/dashboard/master/src/deploy/recommended/kubernetes-dashboard.yaml
-```
-
-### Create an eks-admin Service Account and Cluster Role Binding
-
-#### Apply the service account to your cluster
-
-```sh
-kubectl apply -f yaml/eks-admin-service-account.yaml
-```
-
-#### Apply the cluster role binding to your cluster
-
-```sh
-kubectl apply -f yaml/eks-admin-cluster-role-binding.yaml
-```
-
-### Connect to the Dashboard
-
-```sh
-kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep eks-admin | awk '{print $1}')
-
-kubectl proxy
-```
-
-> NOTE: Open the link with a web browser to access the dashboard endpoint: <http://localhost:8001/api/v1/namespaces/kube-system/services/https:kubernetes-dashboard:/proxy/>
-
-> NOTE: Choose Token and paste output from the previous command into the Token field
-
-[![asciicast](https://asciinema.org/a/195823.png)](https://asciinema.org/a/195823)
 
 ## Rolling back all changes
 
@@ -503,8 +326,6 @@ kubectl proxy
 ```sh
 terraform destroy -auto-approve
 ```
-
-[![asciicast](https://asciinema.org/a/195827.png)](https://asciinema.org/a/195827)
 
 ### Removing S3 bucket, IAM roles and terraform account
 
