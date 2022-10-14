@@ -24,11 +24,11 @@ quickcheck = { version = "0.9", optional = true }
 quickcheck_macros = { version = "0.9", optional = true }
 proptest = { git = "https://github.com/input-output-hk/proptest.git" }
 test-strategy = { version = "0.2" }
-ed25519-bip32 = { version = "0.4.1", optional = true }
+ed25519-bip32 = { version = "0.4.1" }
 thiserror = "1.0"
 lazy_static = { version = "1.3.0", optional = true }
 cardano-legacy-address = { path= "../cardano-legacy-address" }
-rand_chacha = { version = "0.3", optional = true }
+rand_chacha = { version = "0.3" }
 criterion = { version = "0.3.0", optional = true }
 
 rand = "0.8"
@@ -43,9 +43,7 @@ property-test-api = [
         "imhamt/property-test-api",
         "quickcheck",
         "quickcheck_macros",
-        "lazy_static",
-        "rand_chacha",
-        "ed25519-bip32"]
+        "lazy_static"]
 with-bench = ["criterion","property-test-api"]
 evm = ["chain-evm", "proptest/evm"]
 
@@ -57,8 +55,6 @@ chain-crypto = { path = "../chain-crypto", features=["property-test-api"]}
 chain-time = { path = "../chain-time", features=["property-test-api"]}
 chain-addr = { path = "../chain-addr", features=["property-test-api"]}
 chain-evm = { path = "../chain-evm", features=["property-test-api"]}
-ed25519-bip32 = "0.4.1"
-rand_chacha = "0.3"
 lazy_static = "1.3.0"
 tempfile = "3.1.0"
 serde = { version = "1.0", features = ["derive"] }

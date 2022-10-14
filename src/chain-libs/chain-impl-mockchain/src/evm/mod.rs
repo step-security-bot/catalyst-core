@@ -17,9 +17,11 @@ use chain_evm::{
     rlp::{decode, Decodable, DecoderError, Encodable, Rlp, RlpStream},
     state::ByteCode,
 };
+use proptest::strategy::Just;
 
 /// Variants of supported EVM action types
-#[derive(Clone, Debug, PartialEq, Eq, test_strategy::Arbitrary)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "evm", derive(test_strategy::Arbitrary))]
 pub enum EvmActionType {
     #[cfg(feature = "evm")]
     Create { init_code: ByteCode },
@@ -27,6 +29,18 @@ pub enum EvmActionType {
     Create2 { init_code: ByteCode, salt: H256 },
     #[cfg(feature = "evm")]
     Call { address: Address, data: ByteCode },
+}
+
+#[cfg(not(feature = "evm"))]
+impl proptest::prelude::Arbitrary for EvmActionType {
+   type Parameters = ();
+   // it doesn't matter what we use here because this enum is uninhabited in this case
+   type Strategy = Just<Self>;  
+
+   fn arbitrary_with((): Self::Parameters) -> Self::Strategy {
+       unimplemented!("enum is uninhabited");
+   }
+    
 }
 
 #[cfg(feature = "evm")]
@@ -39,7 +53,7 @@ impl EvmActionType {
     }
 }
 
-/// Variants of supported EVM transactions
+/// Variants of supported EVM transaction s
 #[derive(Clone, Debug, PartialEq, Eq, test_strategy::Arbitrary)]
 pub struct EvmTransaction {
     #[cfg(feature = "evm")]
@@ -305,6 +319,7 @@ mod test {
 }
 
 mod proptest_impl {
+    #[cfg(feature = "evm")]
     use chain_evm::{
         ethereum_types::{H160, H256},
         machine::AccessListItem,
@@ -314,6 +329,7 @@ mod proptest_impl {
 
     use super::EvmActionType;
 
+    #[cfg(feature = "evm")]
     pub fn access_list_strategy() -> impl Strategy<Value = AccessList> {
         type H160Bytes = [u8; H160::len_bytes()];
         type H256Bytes = [u8; H256::len_bytes()];

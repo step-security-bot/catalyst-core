@@ -3,6 +3,7 @@ use crate::block::BlockDate;
 use crate::fragment::ConfigParams;
 use crate::ledger::governance::TreasuryGovernanceAction;
 use crate::rewards::TaxType;
+#[cfg(any(test, feature = "property-test-api"))]
 use crate::testing::data::CommitteeMembersManager;
 use crate::vote;
 use crate::{accounting::account::DelegationType, tokens::identifier::TokenIdentifier};
@@ -11,14 +12,14 @@ use chain_core::{packer::Codec, property::DeserializeFromSlice};
 use chain_crypto::{testing, Ed25519};
 use chain_time::DurationSeconds;
 use chain_vote::{Crs, EncryptedTally};
-#[cfg(test)]
-use quickcheck::TestResult;
+#[cfg(any(test, feature = "property-test-api"))]
 use quickcheck::{Arbitrary, Gen};
-use quickcheck_macros::quickcheck;
 use rand::SeedableRng;
 use rand_chacha::ChaChaRng;
+use test_strategy::proptest;
 use std::num::NonZeroU8;
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for PoolRetirement {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let retirement_time = DurationSeconds::from(u64::arbitrary(g)).into();
@@ -29,6 +30,7 @@ impl Arbitrary for PoolRetirement {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for PoolUpdate {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let pool_id = Arbitrary::arbitrary(g);
@@ -43,6 +45,7 @@ impl Arbitrary for PoolUpdate {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for PoolOwnersSigned {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let mut signatoree = u8::arbitrary(g) % 32;
@@ -59,6 +62,7 @@ impl Arbitrary for PoolOwnersSigned {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for PoolSignature {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         if bool::arbitrary(g) {
@@ -69,18 +73,21 @@ impl Arbitrary for PoolSignature {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for PoolPermissions {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         PoolPermissions::new(u8::arbitrary(g))
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for DelegationType {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         DelegationType::Full(Arbitrary::arbitrary(g))
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for StakeDelegation {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         StakeDelegation {
@@ -90,6 +97,7 @@ impl Arbitrary for StakeDelegation {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for OwnerStakeDelegation {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         Self {
@@ -98,6 +106,7 @@ impl Arbitrary for OwnerStakeDelegation {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for UpdateProposal {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let mut changes = ConfigParams::new();
@@ -109,6 +118,7 @@ impl Arbitrary for UpdateProposal {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for UpdateVote {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let proposal_id = UpdateProposalId::arbitrary(g);
@@ -117,6 +127,7 @@ impl Arbitrary for UpdateVote {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for PoolRegistration {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let start_validity: DurationSeconds = u64::arbitrary(g).into();
@@ -150,6 +161,7 @@ impl Arbitrary for PoolRegistration {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for TreasuryGovernanceAction {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         TreasuryGovernanceAction::TransferToRewards {
@@ -158,6 +170,7 @@ impl Arbitrary for TreasuryGovernanceAction {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for VoteAction {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         if let Some(action) = Arbitrary::arbitrary(g) {
@@ -168,6 +181,7 @@ impl Arbitrary for VoteAction {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for Proposal {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let external_id = ExternalProposalId::arbitrary(g);
@@ -178,6 +192,7 @@ impl Arbitrary for Proposal {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for Proposals {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let len = usize::arbitrary(g) % Proposals::MAX_LEN;
@@ -194,6 +209,7 @@ impl Arbitrary for Proposals {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for VotePlan {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let vote_start = BlockDate::arbitrary(g);
@@ -230,6 +246,7 @@ impl Arbitrary for VotePlan {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for VotePlanProof {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         Self {
@@ -239,6 +256,7 @@ impl Arbitrary for VotePlanProof {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for VoteCast {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let vote_plan = VotePlanId::arbitrary(g);
@@ -249,6 +267,7 @@ impl Arbitrary for VoteCast {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 fn arbitrary_decrypted_private_tally<G: Gen>(g: &mut G) -> DecryptedPrivateTally {
     let proposals_n = u8::arbitrary(g);
     let mut inner = Vec::new();
@@ -285,6 +304,7 @@ fn arbitrary_decrypted_private_tally<G: Gen>(g: &mut G) -> DecryptedPrivateTally
     DecryptedPrivateTally::new(inner).unwrap()
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for VoteTally {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let vote_plan_id = VotePlanId::arbitrary(g);
@@ -299,6 +319,7 @@ impl Arbitrary for VoteTally {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for TallyProof {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         Self::Public {
@@ -308,6 +329,7 @@ impl Arbitrary for TallyProof {
     }
 }
 
+#[cfg(any(test, feature = "property-test-api"))]
 impl Arbitrary for Certificate {
     fn arbitrary<G: Gen>(g: &mut G) -> Self {
         let option = u8::arbitrary(g) % 11;
@@ -328,11 +350,12 @@ impl Arbitrary for Certificate {
     }
 }
 
-#[quickcheck]
-fn pool_reg_serialization_bijection(b: PoolRegistration) -> TestResult {
+#[cfg(test)]
+#[proptest]
+fn pool_reg_serialization_bijection(b: PoolRegistration) {
     let b_got = b.serialize();
     let result = PoolRegistration::deserialize_from_slice(&mut Codec::new(b_got.as_ref())).unwrap();
-    TestResult::from_bool(b == result)
+    assert_eq!(b, result);
 }
 
 mod proptest_impls {
@@ -352,11 +375,12 @@ mod proptest_impls {
             pool::PoolOwnersSignature, DecryptedPrivateTally, DecryptedPrivateTallyProposal,
             Proposal, Proposals, VotePlan, VotePlanId, VoteTally,
         },
-        testing::data::CommitteeMembersManager,
         tokens::identifier::TokenIdentifier,
         transaction::SingleAccountBindingSignature,
         vote::PayloadType,
     };
+        #[cfg(any(test, feature = "property-test-api"))]
+    use crate::testing::data::CommitteeMembersManager;
 
     type VotePlanInputs = (
         BlockDate,

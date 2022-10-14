@@ -1,6 +1,5 @@
 use crate::tokens::policy_hash::{PolicyHash, POLICY_HASH_SIZE};
-#[cfg(any(test, feature = "property-test-api"))]
-use proptest::prelude::*;
+use proptest::strategy::Just;
 
 use chain_core::{
     packer::Codec,

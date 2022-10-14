@@ -8,7 +8,6 @@ mod vote_cast;
 mod vote_plan;
 mod vote_tally;
 
-#[cfg(any(test, feature = "property-test-api"))]
 mod test;
 
 use crate::transaction::{Payload, PayloadData, PayloadSlice};

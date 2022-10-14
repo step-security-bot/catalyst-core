@@ -20,50 +20,64 @@ use quickcheck::TestResult;
 use quickcheck::{Arbitrary, Gen};
 use test_strategy::proptest;
 
+#[cfg(test)]
 #[proptest]
 fn header_serialization_bijection(b: crate::header::Header) {
     serialization_bijection(b);
 }
 
+#[cfg(test)]
 #[proptest]
 fn block_serialization_bijection(b: Block) {
     serialization_bijection(b);
 }
 
-quickcheck! {
+#[cfg(test)]
+#[proptest]
+fn header_properties(block: Block) {
+    use chain_core::property::Header as Prop;
+    let header = block.header.clone();
+    assert_eq!(header.hash(), block.id());
+    assert_eq!(header.id(), block.id());
+    assert_eq!(header.parent_id(), block.parent_id());
+    assert_eq!(header.date(), block.date());
+    assert_eq!(header.version(), block.version());
 
+    assert_eq!(header.get_bft_leader_id(), block.header.get_bft_leader_id());
+    assert_eq!(header.get_stakepool_id(), block.header.get_stakepool_id());
+    assert_eq!(header.common(), block.header.common());
+    assert_eq!(header.to_raw(), block.header.to_raw());
+    assert_eq!(header.as_auth_slice(), block.header.as_auth_slice());
+    assert!(are_desc_equal(
+        header.description(),
+        block.header.description()
+    ));
+    assert_eq!(header.size(), block.header.size());
+    assert_eq!(header.chain_length(), block.chain_length());
+}
+quickcheck! {}
 
-    fn header_properties(block: Block) -> TestResult {
-        use chain_core::property::Header as Prop;
-        let header = block.header.clone();
-        assert_eq!(header.hash(),block.id());
-        assert_eq!(header.id(),block.id());
-        assert_eq!(header.parent_id(),block.parent_id());
-        assert_eq!(header.date(),block.date());
-        assert_eq!(header.version(),block.version());
+// TODO: add a separate test with headers with correct content size to stress hash
+// checking when tests are migrated to proptest
+#[cfg(test)]
+#[proptest]
+fn inconsistent_block_deserialization(header: Header, contents: Contents) {
+    let (content_hash, content_size) = contents.compute_hash_size();
 
-        assert_eq!(header.get_bft_leader_id(),block.header.get_bft_leader_id());
-        assert_eq!(header.get_stakepool_id(),block.header.get_stakepool_id());
-        assert_eq!(header.common(),block.header.common());
-        assert_eq!(header.to_raw(),block.header.to_raw());
-        assert_eq!(header.as_auth_slice(),block.header.as_auth_slice());
-        assert!(are_desc_equal(header.description(),block.header.description()));
-        assert_eq!(header.size(),block.header.size());
+    let maybe_block = Block {
+        header: header.clone(),
+        contents,
+    };
 
-        TestResult::from_bool(header.chain_length() == block.chain_length())
-    }
+    let block = Block::deserialize(&mut Codec::new(
+        maybe_block.serialize_as_vec().unwrap().as_slice(),
+    ));
 
-    // TODO: add a separate test with headers with correct content size to stress hash
-    // checking when tests are migrated to proptest
-    fn inconsistent_block_deserialization(header: Header, contents: Contents) -> bool {
-        let (content_hash, content_size) = contents.compute_hash_size();
-
-        let maybe_block = Block { header: header.clone(), contents };
-
-        let block = Block::deserialize(&mut Codec::new(maybe_block.serialize_as_vec().unwrap().as_slice()));
-
-        (content_hash != header.block_content_hash() || content_size != header.block_content_size()) == block.is_err()
-    }
+    assert!(
+        (content_hash != header.block_content_hash()
+            || content_size != header.block_content_size())
+            == block.is_err()
+    )
 }
 
 #[cfg(test)]
