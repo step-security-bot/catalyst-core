@@ -1,4 +1,4 @@
-use catalyst_toolbox::rewards::voters::calc_voter_rewards;
+use catalyst_toolbox::rewards::voters::{calc_voter_rewards, AddrKind};
 use catalyst_toolbox::rewards::{Rewards, Threshold};
 use color_eyre::Report;
 use jcli_lib::jcli_lib::block::Common;
@@ -107,6 +107,7 @@ impl DrepsRewards {
                 proposals,
             )?,
             Rewards::from(total_rewards),
+            AddrKind::default(),
         )?;
 
         write_rewards_results(common, &results)?;

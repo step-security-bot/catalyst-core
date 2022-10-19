@@ -2,20 +2,17 @@ use catalyst_toolbox::rewards::voters::{calc_voter_rewards, AddrKind};
 use catalyst_toolbox::rewards::{Rewards, Threshold, VoteCount};
 use catalyst_toolbox::utils::assert_are_close;
 
-use color_eyre::eyre::{bail, eyre};
+use color_eyre::eyre::eyre;
 use color_eyre::{Report, Result};
 use jcli_lib::block::open_output;
 use jcli_lib::jcli_lib::block::Common;
 
-use serde::Serialize;
-use snapshot_lib::registration::{MainnetRewardAddress, MainnetStakeAddress};
+use snapshot_lib::registration::MainnetRewardAddress;
 use snapshot_lib::SnapshotInfo;
 use structopt::StructOpt;
-use vit_servicing_station_tests::tests::bootstrap::arguments::address;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
 
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]

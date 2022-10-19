@@ -3,6 +3,7 @@ use std::{fs::File, path::Path};
 use catalyst_toolbox::{
     http::HttpClient,
     rewards::proposers::{OutputFormat, ProposerRewards},
+    rewards::voters::AddrKind,
 };
 use color_eyre::Result;
 use config::*;
@@ -52,8 +53,8 @@ pub(super) fn full_rewards(path: &Path) -> Result<()> {
         &snapshot_path,
         voter_params.vote_threshold,
         voter_params.total_rewards,
-        AddrKind::default(),  // TODO: expose as parameter in config
-     )?;
+        AddrKind::Stake, // TODO: expose as parameter in config
+    )?;
 
     info!("calculating vca rewards");
     super::veterans::vca_rewards(
