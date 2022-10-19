@@ -88,8 +88,6 @@ pub fn calc_dreps_rewards(
 
 #[cfg(test)]
 mod tests {
-    use crate::rewards::voters::AddrKind;
-
     use super::*;
     use jormungandr_lib::crypto::hash::Hash;
     use proptest::prop_assert_eq;

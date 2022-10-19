@@ -118,13 +118,3 @@ pub fn voter_rewards(
     write_rewards_results(&Some(output.to_path_buf()), &results)?;
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn can_parse_args() {
-        let args = VotersRewards::from_iter(["catalyst-toolbox", "--address-kind", "stake"]);
-    }
-}
