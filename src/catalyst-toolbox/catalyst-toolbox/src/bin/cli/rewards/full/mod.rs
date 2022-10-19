@@ -52,7 +52,8 @@ pub(super) fn full_rewards(path: &Path) -> Result<()> {
         &snapshot_path,
         voter_params.vote_threshold,
         voter_params.total_rewards,
-    )?;
+        AddrKind::default(),  // TODO: expose as parameter in config
+     )?;
 
     info!("calculating vca rewards");
     super::veterans::vca_rewards(

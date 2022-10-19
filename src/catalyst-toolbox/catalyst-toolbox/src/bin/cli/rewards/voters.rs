@@ -1,18 +1,21 @@
-use catalyst_toolbox::rewards::voters::calc_voter_rewards;
+use catalyst_toolbox::rewards::voters::{calc_voter_rewards, AddrKind};
 use catalyst_toolbox::rewards::{Rewards, Threshold, VoteCount};
 use catalyst_toolbox::utils::assert_are_close;
 
-use color_eyre::eyre::eyre;
+use color_eyre::eyre::{bail, eyre};
 use color_eyre::{Report, Result};
 use jcli_lib::block::open_output;
 use jcli_lib::jcli_lib::block::Common;
 
-use snapshot_lib::registration::MainnetRewardAddress;
+use serde::Serialize;
+use snapshot_lib::registration::{MainnetRewardAddress, MainnetStakeAddress};
 use snapshot_lib::SnapshotInfo;
 use structopt::StructOpt;
+use vit_servicing_station_tests::tests::bootstrap::arguments::address;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
+use std::str::FromStr;
 
 #[derive(StructOpt)]
 #[structopt(rename_all = "kebab-case")]
@@ -37,6 +40,10 @@ pub struct VotersRewards {
     /// Number of global votes required to be able to receive voter rewards
     #[structopt(long, default_value)]
     vote_threshold: u64,
+
+    /// The kind of address to use in the output (either stake or rewards)
+    #[structopt(long, default_value)]
+    address_kind: AddrKind,
 }
 
 fn write_rewards_results(
@@ -64,6 +71,7 @@ impl VotersRewards {
             snapshot_info_path,
             votes_count_path,
             vote_threshold,
+            address_kind,
         } = self;
 
         voter_rewards(
@@ -75,6 +83,7 @@ impl VotersRewards {
             &snapshot_info_path,
             vote_threshold,
             total_rewards,
+            address_kind,
         )
     }
 }
@@ -85,6 +94,7 @@ pub fn voter_rewards(
     snapshot_path: &Path,
     vote_threshold: u64,
     total_rewards: u64,
+    addr_kind: AddrKind,
 ) -> Result<()> {
     let vote_count: VoteCount = serde_json::from_reader(jcli_lib::utils::io::open_file_read(
         &Some(votes_count_path),
@@ -102,6 +112,7 @@ pub fn voter_rewards(
             Default::default(),
         )?,
         Rewards::from(total_rewards),
+        addr_kind,
     )?;
 
     let actual_rewards = results.values().sum::<Rewards>();
@@ -109,4 +120,14 @@ pub fn voter_rewards(
 
     write_rewards_results(&Some(output.to_path_buf()), &results)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn can_parse_args() {
+        let args = VotersRewards::from_iter(["catalyst-toolbox", "--address-kind", "stake"]);
+    }
 }
