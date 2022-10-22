@@ -428,6 +428,7 @@ mod tests {
     use crate::Ballot;
     use rand_chacha::ChaCha20Rng;
     use rand_core::{CryptoRng, RngCore, SeedableRng};
+    use rstest::*;
 
     fn get_encrypted_ballot<R: RngCore + CryptoRng>(
         rng: &mut R,
@@ -439,129 +440,141 @@ mod tests {
         Ballot::try_from_vote_and_proof(enc, &proof, crs, pk).unwrap()
     }
 
-    #[test]
-    fn encdec1() {
+    /// Generalized tally tester.
+    ///
+    /// # Arguments
+    ///
+    /// * `committee_size` - Total number of members in the tally committee.
+    /// * `threshold` - Total number of members needed to successfully tally.
+    /// * `tallying` - Slice of member id's from 0-committee_size-1 that participate in the tally.
+    ///                 eg [0,2] will tally using the first and third members of the committee only.
+    /// 
+    /// Note: if the number of member id's is less than threshold, this function should fail.
+    /// 
+    fn test_tally_committee(
+        committee_size: usize, 
+        threshold: usize, 
+        tallying:&[usize],
+        decrypt_fails:bool
+    ) -> bool {
         let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
 
         let shared_string =
             b"Example of a shared string. This should be VotePlan.to_id()".to_owned();
         let h = Crs::from_hash(&shared_string);
 
-        let mc1 = MemberCommunicationKey::new(&mut rng);
-        let mc = [mc1.to_public()];
+        // Create Committee Communication Keys, and Public Keys.
+        // 1 each for every committee member.
+        let mut committee_communication_keys = Vec::new();
+        let mut committee_public_keys = Vec::new();
+        let mut members_state = Vec::new();
+        let mut member_public_keys = Vec::new();
 
-        let threshold = 1;
 
-        let m1 = MemberState::new(&mut rng, threshold, &h, &mc, 0);
+        for _ in 0..committee_size {
+            let key = MemberCommunicationKey::new(&mut rng);
+            committee_public_keys.push(key.to_public());
+            committee_communication_keys.push(key);
+        }
 
-        let participants = vec![m1.public_key()];
-        let ek = ElectionPublicKey::from_participants(&participants);
+        // This loop requires the committee_public_keys vec be full before running.  
+        // This is why it is a separate loop from above.
+        for member in 0..committee_size {
+            let member_state = MemberState::new(&mut rng, threshold, &h, &committee_public_keys, member);
+            member_public_keys.push(member_state.public_key());
+            members_state.push(member_state);
+        }
 
-        println!("encrypting vote");
+
+        let ek = ElectionPublicKey::from_participants(&member_public_keys);
+
+        // TODO: Generalize the votes encrypted to test various voting patterns.
+        //println!("encrypting vote");
 
         let vote_options = 2;
         let e1 = get_encrypted_ballot(&mut rng, &ek, &h, Vote::new(vote_options, 0));
         let e2 = get_encrypted_ballot(&mut rng, &ek, &h, Vote::new(vote_options, 1));
         let e3 = get_encrypted_ballot(&mut rng, &ek, &h, Vote::new(vote_options, 0));
 
-        println!("tallying");
+        //println!("tallying");
+
+        let voter_1_weight = 12345;
+        let voter_2_weight = 501;
+        let voter_3_weight = 478932;
 
         let mut encrypted_tally = EncryptedTally::new(vote_options, ek.clone(), h.clone());
-        encrypted_tally.add(&e1, 6);
-        encrypted_tally.add(&e2, 5);
-        encrypted_tally.add(&e3, 4);
+        encrypted_tally.add(&e1, voter_1_weight);
+        encrypted_tally.add(&e2, voter_2_weight);
+        encrypted_tally.add(&e3, voter_3_weight);
 
-        let tds1 = encrypted_tally.partial_decrypt(&mut rng, m1.secret_key());
+        let mut shares = Vec::new();
+        let mut participating_public_keys = Vec::new();
 
-        let max_votes = 20;
+        for member in 0..committee_size {
+            if tallying.contains(&member) {
+                let state = members_state.get(member).expect("members_state should always have enough values!");
+                shares.push(encrypted_tally.partial_decrypt(&mut rng, state.secret_key())); 
+                participating_public_keys.push(state.public_key());
 
-        let shares = vec![tds1];
+                // check a mismatch parameters (m2 key with m1's share) is detected
+                if shares.len() > 1 {
+                    let tds = shares.get(0).unwrap();
+                    assert!(!tds.verify(&encrypted_tally, &state.public_key()));      
+                }               
+            }
+        }
 
-        println!("resulting");
+
+        let max_votes = voter_1_weight+voter_2_weight+voter_3_weight;
+
+        //println!("resulting");
         let table = TallyOptimizationTable::generate_with_balance(
             max_votes.try_into().unwrap(),
             1.try_into().unwrap(),
         );
-        let tr = encrypted_tally
-            .validate_partial_decryptions(&participants, &shares)
-            .unwrap()
-            .decrypt_tally(&table)
-            .unwrap();
 
-        println!("{:?}", tr);
-        assert_eq!(tr.votes.len(), vote_options);
-        assert_eq!(tr.votes[0], 10, "vote for option 0");
-        assert_eq!(tr.votes[1], 5, "vote for option 1");
+        let tally_result = match encrypted_tally
+            .validate_partial_decryptions(&participating_public_keys, &shares)
+            .expect("Shares should always match public keys.") 
+            .decrypt_tally(&table) {
+            Err(e) => {
+                if decrypt_fails {
+                    // Decrypt should fail, so return true
+                    return  true;
+                }
+                println!("{:?}",e);
+                return false
+            }
+            Ok(result) => {
+                assert!(!decrypt_fails);
+                result
+            }
+        };
 
-        println!("verifying");
-        assert!(tr.verify(&encrypted_tally, &participants, &shares));
+        //println!("{:?}", tally_result);
+        assert_eq!(tally_result.votes.len(), vote_options);
+        assert_eq!(tally_result.votes[0], voter_1_weight+voter_3_weight, "vote for option 0");
+        assert_eq!(tally_result.votes[1], voter_2_weight, "vote for option 1");
+
+        //println!("verifying");
+        tally_result.verify(&encrypted_tally, &participating_public_keys, &shares)
+
     }
 
-    #[test]
-    fn encdec3() {
-        let mut rng = ChaCha20Rng::from_seed([0u8; 32]);
+    #[rstest]
+    #[case(1, 1, &[0], true)] // 1 committee, threshold of 1 and 1 participating in tally, should decrypt.
+    #[case(3, 3, &[0,1,2], true)] // 3 committee, threshold of 3 and 3 participating in tally, should decrypt.
+    #[case(3, 2, &[0,1,2], true)] // 3 committee, threshold of 2 and 3 participating in tally, should decrypt.
+    #[case(3, 1, &[0,1,2], true)] // 3 committee, threshold of 1 and 3 participating in tally, should decrypt.
+    #[case(10, 5, &[0,2,3,4,5,6,7,8,9], true)] // 10 committee, threshold of 5 and 9 participating in tally, should decrypt.
+    #[case(10, 5, &[0,2,3], false)] // 10 committee, threshold of 5 and 3 participating in tally, should not decrypt.
+    fn tally_test(
+        #[case] size: usize, 
+        #[case] threshold : usize, 
+        #[case] participants:&[usize], 
+        #[case] decrypt_success:bool) {
 
-        let shared_string =
-            b"Example of a shared string. This should be VotePlan.to_id()".to_owned();
-        let h = Crs::from_hash(&shared_string);
-
-        let mc1 = MemberCommunicationKey::new(&mut rng);
-        let mc2 = MemberCommunicationKey::new(&mut rng);
-        let mc3 = MemberCommunicationKey::new(&mut rng);
-        let mc = [mc1.to_public(), mc2.to_public(), mc3.to_public()];
-
-        let threshold = 3;
-
-        let m1 = MemberState::new(&mut rng, threshold, &h, &mc, 0);
-        let m2 = MemberState::new(&mut rng, threshold, &h, &mc, 1);
-        let m3 = MemberState::new(&mut rng, threshold, &h, &mc, 2);
-
-        let participants = vec![m1.public_key(), m2.public_key(), m3.public_key()];
-        let ek = ElectionPublicKey::from_participants(&participants);
-
-        println!("encrypting vote");
-
-        let vote_options = 2;
-        let e1 = get_encrypted_ballot(&mut rng, &ek, &h, Vote::new(vote_options, 0));
-        let e2 = get_encrypted_ballot(&mut rng, &ek, &h, Vote::new(vote_options, 1));
-        let e3 = get_encrypted_ballot(&mut rng, &ek, &h, Vote::new(vote_options, 0));
-
-        println!("tallying");
-
-        let mut encrypted_tally = EncryptedTally::new(vote_options, ek, h);
-        encrypted_tally.add(&e1, 1);
-        encrypted_tally.add(&e2, 3);
-        encrypted_tally.add(&e3, 4);
-
-        let tds1 = encrypted_tally.partial_decrypt(&mut rng, m1.secret_key());
-        let tds2 = encrypted_tally.partial_decrypt(&mut rng, m2.secret_key());
-        let tds3 = encrypted_tally.partial_decrypt(&mut rng, m3.secret_key());
-
-        // check a mismatch parameters (m2 key with m1's share) is detected
-        assert!(!tds1.verify(&encrypted_tally, &m2.public_key()));
-
-        let max_votes = 20;
-
-        let shares = vec![tds1, tds2, tds3];
-
-        println!("resulting");
-        let table = TallyOptimizationTable::generate_with_balance(
-            max_votes.try_into().unwrap(),
-            1.try_into().unwrap(),
-        );
-        let tr = encrypted_tally
-            .validate_partial_decryptions(&participants, &shares)
-            .unwrap()
-            .decrypt_tally(&table)
-            .unwrap();
-
-        println!("{:?}", tr);
-        assert_eq!(tr.votes.len(), vote_options);
-        assert_eq!(tr.votes[0], 5, "vote for option 0");
-        assert_eq!(tr.votes[1], 3, "vote for option 1");
-
-        println!("verifying");
-        assert!(tr.verify(&encrypted_tally, &participants, &shares));
+        assert!(test_tally_committee(size, threshold, participants, !decrypt_success))
     }
 
     #[test]
