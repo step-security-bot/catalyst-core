@@ -2,9 +2,10 @@ name: Release Wasm Chain Wallet Lib package
 
 on:
   push:
+    # Remove branches after testing is complete.
     branches: [ "feature/npg-3884-setup-js-ci-test" ]
     tags:
-      # walletjs-0.7.0-test
+        # walletjs-0.7.0-beta
       - walletjs-*
 
 jobs:
@@ -22,7 +23,6 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         env:
-          # This token is provided by Actions, you do not need to create your own token.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
@@ -58,19 +58,25 @@ jobs:
         run: |
           cd src/chain-wallet-libs
           wasm-pack build \
-            --scope minikin_ \
+            --scope catalystcore \
             --out-name walletjs \
             --release --target ${{ matrix.target }} \
             bindings/wallet-js
 
-      - name: Pack
+      - name: Run tests
         run: |
-          cd src/chain-wallet-libs
-          wasm-pack pack bindings/wallet-js
+          cd src/chain-wallet-libs/bindings/wallet-js/js-test
+          npm install
+          npm test
 
-      - name: Publish
-        run: |
-          cd src/chain-wallet-libs/bindings/wallet-js/pkg
-          npm publish --access=public
-        env:
-            NODE_AUTH_TOKEN: ${{ secrets.TEST_NPM_TOKEN }}
+      # - name: Pack
+      #   run: |
+      #     cd src/chain-wallet-libs
+      #     wasm-pack pack bindings/wallet-js
+
+      # - name: Publish
+      #   run: |
+      #     cd src/chain-wallet-libs/bindings/wallet-js/pkg
+      #     npm publish --access=public
+      #   env:
+      #       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
