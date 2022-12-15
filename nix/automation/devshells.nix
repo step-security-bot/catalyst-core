@@ -17,6 +17,7 @@
         OPENSSL_LIB_DIR = "${l.getLib openssl}/lib";
         PROTOC = "${protobuf}/bin/protoc";
         PROTOC_INCLUDE = "${protobuf}/include";
+        LD_LIBRARY_PATH = "${postgresql.lib}/lib";
       };
     nixago = [
       cell.configs.lefthook
