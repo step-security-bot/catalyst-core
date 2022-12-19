@@ -241,6 +241,8 @@ fn limit_and_offset<T>(vec: Vec<T>, limit: Option<u64>, offset: Option<u64>) -> 
 
 #[cfg(test)]
 mod tests {
+    use serde_json::{json, from_value};
+
     use crate::make_context;
 
     use super::*;
@@ -314,5 +316,25 @@ mod tests {
             .unwrap();
 
         assert_eq!(challenges, vec![challenge]);
+    }
+
+    #[tokio::test]
+    async fn bug_ticket_4470() {
+        let context = make_context!();
+
+        let body = json!({
+            "table": "proposals",
+            "filter": [
+                {
+                    "column": "funds",
+                    "search": 500,
+                }
+            ]
+        });
+
+        let query: searchquery = from_value(body).unwrap();
+
+        let result = search_impl(query, context).await.unwrap();
+        let searchresponse::proposal(_) = result else { panic!() };
     }
 }
