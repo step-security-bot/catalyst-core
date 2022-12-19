@@ -332,9 +332,9 @@ mod tests {
             ]
         });
 
-        let query: searchquery = from_value(body).unwrap();
+        let query: SearchQuery = from_value(body).unwrap();
 
         let result = search_impl(query, context).await.unwrap();
-        let searchresponse::proposal(_) = result else { panic!() };
+        let SearchResponse::Proposal(_) = result else { panic!() };
     }
 }
