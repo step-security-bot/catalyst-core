@@ -96,6 +96,7 @@ fn filter_challenges(
                     Type => |c: &Challenge| c.challenge_type.to_string(),
                     Title => |c: &Challenge| c.title.clone(),
                     Desc => |c: &Challenge| c.description.clone(),
+                    ChallengeId => |c: &Challenge| c.id.to_string(),
                     Author | Funds | ImpactScore => return Err(make_error("invalid column", 400)),
                 };
 
@@ -164,6 +165,7 @@ fn filter_proposals(
                     Title => |p: &FullProposalInfo| p.proposal.proposal_title.clone(),
                     Desc => |p: &FullProposalInfo| p.proposal.proposal_summary.clone(),
                     Author => |p: &FullProposalInfo| p.proposal.proposer.proposer_name.clone(),
+                    ChallengeId => |p: &FullProposalInfo| p.proposal.challenge_id.to_string(),
                     Funds | ImpactScore => return Err(make_error("invalid column", 400)),
                 };
 

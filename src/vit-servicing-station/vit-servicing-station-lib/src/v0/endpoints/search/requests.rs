@@ -63,6 +63,7 @@ pub enum Column {
     Author,
     Funds,
     ImpactScore,
+    ChallengeId,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
