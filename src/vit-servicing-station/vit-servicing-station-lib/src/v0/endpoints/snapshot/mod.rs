@@ -24,7 +24,7 @@ pub use routes::{filter, update_filter};
 use serde::{Deserialize, Serialize};
 use snapshot_lib::{
     voting_group::{RepsVotersAssigner, DEFAULT_DIRECT_VOTER_GROUP, DEFAULT_REPRESENTATIVE_GROUP},
-    Fraction, RawSnapshot, Snapshot, SnapshotInfo,
+    Dreps, Fraction, RawSnapshot, Snapshot, SnapshotInfo,
 };
 
 pub type Tag = String;
@@ -161,12 +161,13 @@ pub async fn update_from_raw_snapshot(
     voting_power_cap: Fraction,
     direct_voters_group: Option<String>,
     representatives_group: Option<String>,
+    dreps: Option<Dreps>,
     context: SharedContext,
 ) -> Result<(), HandleError> {
     let direct_voter = direct_voters_group.unwrap_or_else(|| DEFAULT_DIRECT_VOTER_GROUP.into());
     let representative =
         representatives_group.unwrap_or_else(|| DEFAULT_REPRESENTATIVE_GROUP.into());
-    let assigner = RepsVotersAssigner::new(direct_voter, representative);
+    let assigner = RepsVotersAssigner::new(direct_voter, representative, dreps.unwrap_or_default());
     let snapshot =
         Snapshot::from_raw_snapshot(snapshot, min_stake_threshold, voting_power_cap, &assigner)
             .map_err(|e| HandleError::InternalError(e.to_string()))?
@@ -237,6 +238,8 @@ pub async fn update_from_snapshot_info(
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use super::*;
     use crate::db::migrations::initialize_db_with_migration;
     use crate::v0::context::test::new_db_test_shared_context;
@@ -852,6 +855,12 @@ mod test {
             voting_power_cap: 100.into(),
             direct_voters_group: None,
             representatives_group: None,
+            dreps: Some(
+                (vec![Identifier::from_hex(key).unwrap()]
+                    .into_iter()
+                    .collect::<HashSet<Identifier>>())
+                .into(),
+            ),
         })
         .unwrap();
 
@@ -886,6 +895,7 @@ mod test {
             voting_power_cap: 100.into(),
             direct_voters_group: None,
             representatives_group: None,
+            dreps: None,
         })
         .unwrap();
 
@@ -921,7 +931,7 @@ mod test {
 
         assert_eq!(
             get_voters_info("tag_a", key, &filter).await.unwrap(),
-            vec![(3u64, 2u64, 3u64, "direct".to_string())]
+            vec![(3u64, 2u64, 3u64, "rep".to_string())]
         );
 
         assert_eq!(
